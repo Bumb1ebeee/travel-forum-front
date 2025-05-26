@@ -1,0 +1,83 @@
+.discussion-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.layout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.layout-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.create-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #8B5CF6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.create-button:hover {
+  background-color: #7C3AED;
+}
+
+.layout-content {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+}
+
+.main-content {
+  min-width: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .layout-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .discussion-layout {
+    padding: 1rem;
+  }
+
+  .layout-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .layout-title {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  .create-button {
+    width: 100%;
+    justify-content: center;
+  }
+} 

@@ -1,0 +1,230 @@
+.discussion-form {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-header {
+  margin-bottom: 1.5rem;
+}
+
+.form-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 0.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4B5563;
+  margin-bottom: 0.5rem;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #1F2937;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.form-textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-input-container {
+  position: relative;
+}
+
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.file-input-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #F3F4F6;
+  border: 1px dashed #D1D5DB;
+  border-radius: 0.5rem;
+  color: #4B5563;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.file-input-label:hover {
+  background-color: #E5E7EB;
+}
+
+.file-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.preview-item {
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.preview-video {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.preview-audio {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #F3F4F6;
+  border-radius: 0.5rem;
+}
+
+.preview-file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background-color: #F3F4F6;
+  border-radius: 0.5rem;
+  color: #4B5563;
+}
+
+.remove-file {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.remove-file:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.submit-button,
+.cancel-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.submit-button {
+  background-color: #8B5CF6;
+  color: white;
+  border: none;
+}
+
+.submit-button:hover {
+  background-color: #7C3AED;
+}
+
+.submit-button:disabled {
+  background-color: #D1D5DB;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  background-color: white;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.cancel-button:hover {
+  background-color: #F3F4F6;
+}
+
+.error-message {
+  color: #DC2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .discussion-form {
+    padding: 1rem;
+  }
+
+  .form-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .submit-button,
+  .cancel-button {
+    width: 100%;
+  }
+
+  .file-preview {
+    grid-template-columns: 1fr;
+  }
+} 

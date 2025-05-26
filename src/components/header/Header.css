@@ -1,0 +1,205 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 2rem;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  height: 60px;
+}
+
+.logo img {
+  height: 60px !important;
+  width: auto !important;
+  object-fit: contain;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #6B7280;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.search-button:hover {
+  color: #4B5563;
+}
+
+.search-form {
+  position: relative;
+}
+
+.search-input {
+  width: 0;
+  padding: 0.5rem 0;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  transition: all 0.3s;
+  opacity: 0;
+}
+
+.search-input.open {
+  width: 300px;
+  opacity: 1;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #6366F1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.suggestion-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+  background-color: #F3F4F6;
+}
+
+.error-message {
+  color: #DC2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.loading-text {
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  border-radius: 9999px;
+  object-fit: cover;
+}
+
+.user-name {
+  color: #4B5563;
+  font-size: 0.875rem;
+}
+
+.login-button {
+  background-color: #6366F1;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background-color: #4F46E5;
+}
+
+.notifications-link {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.notifications-link:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #EF4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+}
+
+.notification-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1rem;
+  min-width: 300px;
+  max-width: 400px;
+  transform: translateX(120%);
+  transition: transform 0.3s ease-in-out;
+  z-index: 50;
+  cursor: pointer;
+}
+
+.notification-toast.show {
+  transform: translateX(0);
+}
+
+.notification-content {
+  color: #1F2937;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.notification-content p {
+  margin: 0;
+} 
