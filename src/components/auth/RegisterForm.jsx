@@ -6,7 +6,6 @@ import Link from 'next/link';
 import config from '@/pages/api/config';
 import { isAuthenticated } from '@/utils/auth';
 import { useRouter } from 'next/navigation';
-import styles from './AuthForms.module.css';
 
 export default function RegisterForm({ onSuccess }) {
   const [formData, setFormData] = useState({
@@ -79,14 +78,14 @@ export default function RegisterForm({ onSuccess }) {
   };
 
   if (loading) {
-    return <div className={styles.authContainer}>Загрузка...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
   }
 
   return (
-    <div className={styles.authContainer}>
-      <form onSubmit={handleSubmit} className={styles.authForm}>
-        <h2 className={styles.authTitle}>Регистрация</h2>
-        {error && <p className={styles.authError}>{error}</p>}
+    <div className="min-h-screen flex items-center justify-center">
+      <form onSubmit={handleSubmit} className="p-8 bg-white rounded-xl shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-6">Регистрация</h2>
+        {error && <p className="text-red-600 text-center mb-4">{error}</p>}
 
         <input
           type="text"
@@ -94,7 +93,7 @@ export default function RegisterForm({ onSuccess }) {
           placeholder="Имя..."
           value={formData.name}
           onChange={handleChange}
-          className={styles.authInput}
+          className="mb-4 p-3 w-full border border-gray-300 rounded-lg text-gray-500 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
           required
         />
         <input
@@ -103,7 +102,7 @@ export default function RegisterForm({ onSuccess }) {
           placeholder="Имя пользователя..."
           value={formData.username}
           onChange={handleChange}
-          className={styles.authInput}
+          className="mb-4 p-3 w-full border border-gray-300 rounded-lg text-gray-500 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
           required
         />
         <input
@@ -112,7 +111,7 @@ export default function RegisterForm({ onSuccess }) {
           placeholder="Почта..."
           value={formData.email}
           onChange={handleChange}
-          className={styles.authInput}
+          className="mb-4 p-3 w-full border border-gray-300 rounded-lg text-gray-500 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
           required
         />
         <input
@@ -121,7 +120,7 @@ export default function RegisterForm({ onSuccess }) {
           placeholder="Пароль..."
           value={formData.password}
           onChange={handleChange}
-          className={styles.authInput}
+          className="mb-4 p-3 w-full border border-gray-300 rounded-lg text-gray-500 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
           required
         />
         <input
@@ -130,18 +129,18 @@ export default function RegisterForm({ onSuccess }) {
           placeholder="Подтвердите пароль..."
           value={formData.password_confirmation}
           onChange={handleChange}
-          className={`${styles.authInput} ${styles.authInputPassword}`}
+          className="mb-6 p-3 w-full border border-gray-300 rounded-lg text-gray-500 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
           required
         />
         <button
           type="submit"
-          className={`${styles.authButton} ${styles.mainButton}`}
+          className="w-full p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           Регистрация
         </button>
-        <p className={styles.authLinkContainer}>
+        <p className="mt-4 text-center text-gray-500">
           Уже есть аккаунт?{' '}
-          <Link href="/auth/login" className={styles.authLink}>
+          <Link href="/auth/login" className="text-gray-500 hover:underline">
             Войти
           </Link>
         </p>

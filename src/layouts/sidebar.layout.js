@@ -33,26 +33,26 @@ export default function SidebarLayout({ children }) {
   return (
     <div className="flex h-[calc(100vh-64px)] bg-primary-bg min-w-[320px]">
       {/* Кнопка для открытия/закрытия сайдбара */}
-      {/*<button*/}
-      {/*  className="fixed top-12 left-4 z-50 p-2 bg-white rounded shadow text-text-primary flex items-center"*/}
-      {/*  onClick={toggleSidebar}*/}
-      {/*>*/}
-      {/*  {isSidebarOpen ? (*/}
-      {/*    <>*/}
-      {/*      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">*/}
-      {/*        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />*/}
-      {/*      </svg>*/}
-      {/*      Закрыть*/}
-      {/*    </>*/}
-      {/*  ) : (*/}
-      {/*    <>*/}
-      {/*      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">*/}
-      {/*        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />*/}
-      {/*      </svg>*/}
-      {/*      Меню*/}
-      {/*    </>*/}
-      {/*  )}*/}
-      {/*</button>*/}
+      <button
+        className="fixed top-12 left-4 z-50 p-2 bg-white rounded shadow text-text-primary flex items-center"
+        onClick={toggleSidebar}
+      >
+        {isSidebarOpen ? (
+          <>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Закрыть
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Меню
+          </>
+        )}
+      </button>
 
       {/* Сайдбар */}
       <div

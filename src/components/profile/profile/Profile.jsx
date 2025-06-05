@@ -5,6 +5,7 @@ import axios from 'axios';
 import config from '@/pages/api/config';
 import UserInfo from './UserInfo';
 import AvatarUploader from './AvatarUploader';
+import { resetAuthCache } from '@/utils/auth';
 import { useRouter } from 'next/navigation';
 
 export default function UserProfile({ user, setUser }) {
@@ -115,6 +116,7 @@ export default function UserProfile({ user, setUser }) {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    resetAuthCache();
     router.push('/auth/login');
   };
 

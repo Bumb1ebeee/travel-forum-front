@@ -1,4 +1,3 @@
-// components/Header.js
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,8 +7,6 @@ import { isAuthenticated } from '@/utils/auth';
 import Image from 'next/image';
 import axios from 'axios';
 import config from '@/pages/api/config';
-import './Header.css';
-import '@/styles/common.css';
 
 export default function Header() {
   const [isAuth, setIsAuth] = useState(false);
@@ -88,7 +85,6 @@ export default function Header() {
     setSuggestions([]);
   };
 
-  // Функция для получения уведомлений
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -97,7 +93,7 @@ export default function Header() {
       const response = await axios.get(`${config.apiUrl}/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const unread = response.data.notifications.filter(n => !n.is_read);
       setUnreadCount(unread.length);
       setNotifications(response.data.notifications);
@@ -106,7 +102,6 @@ export default function Header() {
     }
   };
 
-  // Проверка новых уведомлений каждые 30 секунд
   useEffect(() => {
     if (isAuth) {
       fetchNotifications();
@@ -115,32 +110,28 @@ export default function Header() {
     }
   }, [isAuth]);
 
-  // Функция для отображения нового уведомления
   const showNewNotification = (notification) => {
     const notificationElement = document.createElement('div');
-    notificationElement.className = 'notification-toast';
+    notificationElement.className = 'fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] translate-x-full transition-transform duration-300 z-50 cursor-pointer';
     notificationElement.innerHTML = `
-      <div class="notification-content">
+      <div class="text-gray-800 text-sm leading-5">
         <p>${notification.message}</p>
       </div>
     `;
-    
+
     document.body.appendChild(notificationElement);
-    
-    // Добавляем класс для анимации появления
+
     setTimeout(() => {
-      notificationElement.classList.add('show');
+      notificationElement.classList.add('translate-x-0');
     }, 100);
 
-    // Удаляем уведомление через 5 секунд
     setTimeout(() => {
-      notificationElement.classList.remove('show');
+      notificationElement.classList.remove('translate-x-0');
       setTimeout(() => {
         document.body.removeChild(notificationElement);
       }, 300);
     }, 5000);
 
-    // Добавляем обработчик клика
     notificationElement.addEventListener('click', () => {
       if (notification.link) {
         router.push(notification.link);
@@ -148,7 +139,6 @@ export default function Header() {
     });
   };
 
-  // Обработка новых уведомлений
   useEffect(() => {
     if (notifications.length > 0) {
       const latestNotification = notifications[0];
@@ -159,8 +149,8 @@ export default function Header() {
   }, [notifications]);
 
   return (
-    <header className="header">
-      <div className="header-content">
+    <header className="flex justify-between items-center px-8 py-2 bg-white shadow-sm">
+      <div className="flex justify-between items-center w-full max-w-screen-4xl mx-auto">
         <Link href="/">
           <Image
             src="/logo.svg"
@@ -168,15 +158,14 @@ export default function Header() {
             width={180}
             height={60}
             priority
-            className="logo"
-            style={{ height: '60px', width: 'auto' }}
+            className="h-[60px] w-auto object-contain"
           />
         </Link>
 
-        <div className="header-right">
-          <div className="search-container">
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center">
             <button
-              className="search-button"
+              className="p-2 text-gray-500 hover:text-gray-600"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <svg
@@ -194,21 +183,21 @@ export default function Header() {
                 />
               </svg>
             </button>
-            <form onSubmit={handleSearch} className="search-form">
+            <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
                 placeholder="Поиск..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`search-input ${isSearchOpen ? 'open' : ''}`}
+                className={`w-0 p-2 border border-gray-200 rounded-lg transition-all duration-300 opacity-0 ${isSearchOpen ? 'w-[300px] opacity-100' : ''} focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100`}
               />
               {suggestions.length > 0 && (
-                <ul className="suggestions-list">
+                <ul className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg mt-2 shadow-md z-10">
                   {suggestions.map((suggestion, index) => (
                     <li
                       key={index}
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="suggestion-item"
+                      className="px-4 py-3 cursor-pointer hover:bg-gray-100"
                     >
                       {suggestion}
                     </li>
@@ -216,13 +205,13 @@ export default function Header() {
                 </ul>
               )}
               {error && (
-                <p className="error-message">{error}</p>
+                <p className="text-red-600 text-sm mt-1">{error}</p>
               )}
             </form>
           </div>
 
           {isAuth && (
-            <Link href="/notifications" className="notifications-link">
+            <Link href="/notifications" className="flex items-center mr-4 p-2 rounded-lg hover:bg-blue-50 transition-colors">
               <div className="relative">
                 <svg
                   className="w-6 h-6 text-gray-600 hover:text-blue-500 transition-colors"
@@ -239,7 +228,7 @@ export default function Header() {
                   />
                 </svg>
                 {unreadCount > 0 && (
-                  <span className="notification-badge">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold min-w-[1.25rem] h-5 rounded-full flex items-center justify-center px-1">
                     {unreadCount}
                   </span>
                 )}
@@ -248,25 +237,25 @@ export default function Header() {
           )}
 
           {loading ? (
-            <div className="loading-text">Загрузка...</div>
+            <div className="text-gray-500 text-sm">Загрузка...</div>
           ) : isAuth ? (
-            <div className="user-profile">
+            <div className="flex items-center gap-3">
               <Link href="/profile">
                 <Image
                   src={user?.avatar || '/default-avatar.png'}
                   alt="Avatar"
                   width={40}
                   height={40}
-                  className="user-avatar"
+                  className="rounded-full object-cover"
                 />
               </Link>
               <Link href="/profile">
-                <span className="user-name">{user?.name || 'Пользователь'}</span>
+                <span className="text-gray-600 text-sm">{user?.name || 'Пользователь'}</span>
               </Link>
             </div>
           ) : (
             <Link href="/auth/login">
-              <button className="login-button">
+              <button className="bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-600 transition-colors">
                 Вход
               </button>
             </Link>

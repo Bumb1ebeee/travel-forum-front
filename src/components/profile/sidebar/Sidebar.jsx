@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { FaUser, FaCog, FaGavel, FaBell, FaExclamationTriangle, FaChartLine, FaUserShield, FaClipboardList, FaBook } from 'react-icons/fa';
 import axios from 'axios';
@@ -10,78 +10,146 @@ import SidebarButton from './SidebarButton';
 import SubscriptionsMenu from './SubscriptionsMenu';
 import DiscussionsMenu from './DiscussionsMenu';
 
+// Глобальный кэш для данных Sidebar
+const sidebarCache = {
+  userSubscriptions: [],
+  discussionSubscriptions: [],
+  archiveSubscriptions: [],
+  drafts: [],
+  published: [],
+  pending: [],
+  rejected: [],
+  unreadNotifications: 0,
+  lastFetchTime: null,
+  CACHE_DURATION: 5 * 60 * 1000, // 5 минут
+};
+
+// Простая функция для debounce
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+
 const Sidebar = React.memo(() => {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState(null);
-  const [userSubscriptions, setUserSubscriptions] = useState([]);
-  const [discussionSubscriptions, setDiscussionSubscriptions] = useState([]);
-  const [archiveSubscriptions, setArchiveSubscriptions] = useState([]);
-  const [drafts, setDrafts] = useState([]);
-  const [published, setPublished] = useState([]);
-  const [pending, setPending] = useState([]);
-  const [rejected, setRejected] = useState([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [userSubscriptions, setUserSubscriptions] = useState(sidebarCache.userSubscriptions);
+  const [discussionSubscriptions, setDiscussionSubscriptions] = useState(sidebarCache.discussionSubscriptions);
+  const [archiveSubscriptions, setArchiveSubscriptions] = useState(sidebarCache.archiveSubscriptions);
+  const [drafts, setDrafts] = useState(sidebarCache.drafts);
+  const [published, setPublished] = useState(sidebarCache.published);
+  const [pending, setPending] = useState(sidebarCache.pending);
+  const [rejected, setRejected] = useState(sidebarCache.rejected);
+  const [unreadNotifications, setUnreadNotifications] = useState(sidebarCache.unreadNotifications);
   const [loading, setLoading] = useState(true);
+  const requestInProgress = useRef(false); // Флаг для предотвращения параллельных запросов
+  const isMounted = useRef(false); // Флаг для отслеживания монтирования
 
   const isActive = (path) => pathname === path;
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { authenticated, user } = await isAuthenticated();
-      if (!authenticated) {
-        router.push('/auth/login');
-      } else {
-        setUser(user);
-        setLoading(false);
-      }
-    };
-    checkAuth();
+  // Проверка аутентификации
+  const checkAuth = useCallback(async () => {
+    const { authenticated, user } = await isAuthenticated();
+    if (!authenticated) {
+      router.push('/auth/login');
+    } else {
+      setUser(user);
+      setLoading(false);
+    }
   }, [router]);
 
-  const fetchUserSubscriptions = async () => {
+  // Проверка, нужно ли обновлять данные
+  const shouldFetchData = () => {
+    const now = Date.now();
+    return !sidebarCache.lastFetchTime || now - sidebarCache.lastFetchTime > sidebarCache.CACHE_DURATION;
+  };
+
+  // Получение подписок на пользователей
+  const fetchUserSubscriptions = useCallback(async () => {
+    if (!user || user.role === 'moderator' || userSubscriptions.length > 0 || requestInProgress.current || !shouldFetchData()) {
+      return;
+    }
+
+    requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
-      if (!token || user?.role === 'moderator') return;
+      if (!token) return;
 
       const response = await axios.get(`${config.apiUrl}/subscriptions/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUserSubscriptions(response.data.subscriptions || []);
+      const subscriptions = response.data.subscriptions || [];
+      sidebarCache.userSubscriptions = subscriptions;
+      sidebarCache.lastFetchTime = Date.now();
+      setUserSubscriptions(subscriptions);
     } catch (err) {
       console.error('Ошибка загрузки подписок на пользователей:', err.response?.data || err.message);
+    } finally {
+      requestInProgress.current = false;
     }
-  };
+  }, [user, userSubscriptions.length]);
 
-  const fetchDiscussionSubscriptions = async () => {
+  // Получение подписок на обсуждения
+  const fetchDiscussionSubscriptions = useCallback(async () => {
+    if (!user || user.role === 'moderator' || discussionSubscriptions.length > 0 || requestInProgress.current || !shouldFetchData()) {
+      return;
+    }
+
+    requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
-      if (!token || user?.role === 'moderator') return;
+      if (!token) return;
 
       const response = await axios.get(`${config.apiUrl}/subscriptions/discussions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDiscussionSubscriptions(response.data.subscriptions || []);
+      const subscriptions = response.data.subscriptions || [];
+      sidebarCache.discussionSubscriptions = subscriptions;
+      sidebarCache.lastFetchTime = Date.now();
+      setDiscussionSubscriptions(subscriptions);
     } catch (err) {
       console.error('Ошибка загрузки подписок на обсуждения:', err.response?.data || err.message);
+    } finally {
+      requestInProgress.current = false;
     }
-  };
+  }, [user, discussionSubscriptions.length]);
 
-  const fetchArchiveSubscriptions = async () => {
+  // Получение архивированных подписок
+  const fetchArchiveSubscriptions = useCallback(async () => {
+    if (!user || user.role === 'moderator' || archiveSubscriptions.length > 0 || requestInProgress.current || !shouldFetchData()) {
+      return;
+    }
+
+    requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
-      if (!token || user?.role === 'moderator') return;
+      if (!token) return;
 
       const response = await axios.get(`${config.apiUrl}/discussions/archived`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setArchiveSubscriptions(response.data.discussions || []);
+      const discussions = response.data.discussions || [];
+      sidebarCache.archiveSubscriptions = discussions;
+      sidebarCache.lastFetchTime = Date.now();
+      setArchiveSubscriptions(discussions);
     } catch (err) {
       console.error('Ошибка загрузки архивированных подписок:', err.response?.data || err.message);
+    } finally {
+      requestInProgress.current = false;
     }
-  };
+  }, [user, archiveSubscriptions.length]);
 
-  const fetchDiscussions = async () => {
+  // Получение обсуждений
+  const fetchDiscussions = useCallback(async () => {
+    if (!user || (drafts.length > 0 && published.length > 0 && pending.length > 0 && rejected.length > 0) || requestInProgress.current || !shouldFetchData()) {
+      return;
+    }
+
+    requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -123,52 +191,99 @@ const Sidebar = React.memo(() => {
         console.error('Ошибка загрузки отклонённых обсуждений:', rejectedRes.error.response?.data || rejectedRes.error.message);
       }
 
-      setDrafts(draftsRes.data.discussions || []);
-      setPublished(publishedRes.data.discussions || []);
-      setPending(pendingRes.data.discussions || []);
-      setRejected(rejectedRes.data.discussions || []);
+      const newDrafts = draftsRes.data.discussions || [];
+      const newPublished = publishedRes.data.discussions || [];
+      const newPending = pendingRes.data.discussions || [];
+      const newRejected = rejectedRes.data.discussions || [];
+
+      sidebarCache.drafts = newDrafts;
+      sidebarCache.published = newPublished;
+      sidebarCache.pending = newPending;
+      sidebarCache.rejected = newRejected;
+      sidebarCache.lastFetchTime = Date.now();
+
+      setDrafts(newDrafts);
+      setPublished(newPublished);
+      setPending(newPending);
+      setRejected(newRejected);
     } catch (err) {
       console.error('Общая ошибка загрузки обсуждений:', err.response?.data || err.message);
+    } finally {
+      requestInProgress.current = false;
     }
-  };
+  }, [user, drafts.length, published.length, pending.length, rejected.length]);
 
-  const fetchNotifications = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('Токен отсутствует, уведомления не загружаются');
-        return;
+  // Получение уведомлений с debounce
+  const fetchNotifications = useCallback(
+    debounce(async () => {
+      if (requestInProgress.current || !shouldFetchData()) return;
+
+      requestInProgress.current = true;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('Токен отсутствует, уведомления не загружаются');
+          return;
+        }
+
+        const response = await axios.get(`${config.apiUrl}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const notifications = response.data.notifications || [];
+        const unreadCount = notifications.filter(notification => !notification.is_read).length;
+        sidebarCache.unreadNotifications = unreadCount;
+        sidebarCache.lastFetchTime = Date.now();
+        setUnreadNotifications(unreadCount);
+      } catch (err) {
+        console.error('Ошибка загрузки уведомлений:', err.response?.data || err.message);
+      } finally {
+        requestInProgress.current = false;
       }
+    }, 1000), // Задержка 1 секунда
+    []
+  );
 
-      const response = await axios.get(`${config.apiUrl}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const notifications = response.data.notifications || [];
-      const unreadCount = notifications.filter(notification => !notification.is_read).length;
-      setUnreadNotifications(unreadCount);
-    } catch (err) {
-      console.error('Ошибка загрузки уведомлений:', err.response?.data || err.message);
-    }
-  };
-
+  // Проверка аутентификации при монтировании
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
-      fetchDiscussions();
-      fetchUserSubscriptions();
-      fetchDiscussionSubscriptions();
-      fetchArchiveSubscriptions();
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+    if (!isMounted.current) {
+      checkAuth();
+      isMounted.current = true;
     }
-  }, [user]);
+  }, [checkAuth]);
+
+  // Загрузка данных при наличии пользователя
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchData = async () => {
+      await Promise.all([
+        fetchNotifications(),
+        user.role === 'user' && fetchDiscussions(),
+        user.role === 'user' && fetchUserSubscriptions(),
+        user.role === 'user' && fetchDiscussionSubscriptions(),
+        user.role === 'user' && fetchArchiveSubscriptions(),
+      ].filter(Boolean));
+    };
+
+    fetchData();
+
+    // Установка интервала для уведомлений только для пользователей
+    let interval;
+    if (user.role === 'user') {
+      interval = setInterval(fetchNotifications, 60000); // 60 секунд
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user, fetchNotifications, fetchDiscussions, fetchUserSubscriptions, fetchDiscussionSubscriptions, fetchArchiveSubscriptions]);
 
   if (loading) {
     return <div className="w-64 bg-gray-100 p-4 shadow-md">Загрузка...</div>;
   }
 
   return (
-    <aside className="bg-gray-100 w-64 h-[calc(100vh-64px)] p-4 shadow-md overflow-y-auto hide-scrollbar">
+    <aside className="w-64 h-[calc(100vh-64px)] bg-gray-100 p-4 shadow-md overflow-y-auto scrollbar-hidden">
       <SidebarButton
         isActive={isActive('/profile')}
         onClick={() => router.push('/profile')}
@@ -238,25 +353,25 @@ const Sidebar = React.memo(() => {
           >
             Сотрудники
           </SidebarButton>
-          <SidebarButton
-            isActive={isActive('/admin/tests')}
-            onClick={() => router.push('/admin/tests')}
-            icon={FaClipboardList}
-          >
-            Тесты
-          </SidebarButton>
+          {/*<SidebarButton*/}
+          {/*  isActive={isActive('/admin/tests')}*/}
+          {/*  onClick={() => router.push('/admin/tests')}*/}
+          {/*  icon={FaClipboardList}*/}
+          {/*>*/}
+          {/*  Тесты*/}
+          {/*</SidebarButton>*/}
         </>
       )}
 
-      {user.role === 'user' && (
-        <SidebarButton
-          isActive={isActive('/tests')}
-          onClick={() => router.push('/tests')}
-          icon={FaBook}
-        >
-          Тесты
-        </SidebarButton>
-      )}
+      {/*{user.role === 'user' && (*/}
+      {/*  <SidebarButton*/}
+      {/*    isActive={isActive('/tests')}*/}
+      {/*    onClick={() => router.push('/tests')}*/}
+      {/*    icon={FaBook}*/}
+      {/*  >*/}
+      {/*    Тесты*/}
+      {/*  </SidebarButton>*/}
+      {/*)}*/}
 
       {user.role === 'user' && (
         <SidebarButton
@@ -279,5 +394,18 @@ const Sidebar = React.memo(() => {
     </aside>
   );
 });
+
+// Функция для сброса кэша (например, при выходе или изменении данных)
+export const resetSidebarCache = () => {
+  sidebarCache.userSubscriptions = [];
+  sidebarCache.discussionSubscriptions = [];
+  sidebarCache.archiveSubscriptions = [];
+  sidebarCache.drafts = [];
+  sidebarCache.published = [];
+  sidebarCache.pending = [];
+  sidebarCache.rejected = [];
+  sidebarCache.unreadNotifications = 0;
+  sidebarCache.lastFetchTime = null;
+};
 
 export default Sidebar;
