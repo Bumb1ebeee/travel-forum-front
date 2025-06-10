@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -52,25 +51,24 @@ export default function ModerationCard({ discussion, onModerate }) {
 
   // Загрузка медиа
   useEffect(() => {
-    console.log('Discussion:', discussion); // Отладка
     if (!discussion || !user) return;
 
-    // Используем discussion.media, если есть
     if (discussion?.media && discussion.media.length > 0) {
-      console.log('Используем discussion.media:', discussion.media);
-      setMediaItems(discussion.media.map((item) => ({
-        id: String(item.id),
-        type: item.type,
-        content: item.content || { text_content: '', map_points: [] },
-      })));
+      setMediaItems(
+        discussion.media.map((item) => ({
+          id: String(item.id),
+          type: item.type,
+          content: item.content || { text_content: '', map_points: [] },
+        }))
+      );
     } else {
-      // Попытка загрузки медиа через API
       const fetchMedia = async () => {
         if (!discussion?.id) return;
         setIsLoading(true);
         try {
           const token = localStorage.getItem('token');
           if (!token) throw new Error('Токен отсутствует');
+
           const response = await axios.get(`${config.apiUrl}/media`, {
             headers: { Authorization: `Bearer ${token}` },
             params: {
@@ -78,12 +76,13 @@ export default function ModerationCard({ discussion, onModerate }) {
               mediable_type: 'App\\Models\\Discussion',
             },
           });
-          console.log('Полученные медиа:', response.data.media);
+
           const normalizedMedia = response.data.media.map((item) => ({
             id: String(item.id),
             type: item.type,
             content: item.content || { text_content: '', map_points: [] },
           }));
+
           setMediaItems(normalizedMedia);
         } catch (err) {
           console.error('Ошибка загрузки медиа:', err.response?.data || err.message);
@@ -104,10 +103,11 @@ export default function ModerationCard({ discussion, onModerate }) {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Токен отсутствует');
+
         const response = await axios.get(`${config.apiUrl}/tags`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Полученные теги:', response.data);
+
         setTags(response.data.tags || []);
         setFilteredTags(response.data.tags || []);
       } catch (err) {
@@ -118,6 +118,7 @@ export default function ModerationCard({ discussion, onModerate }) {
         setIsLoading(false);
       }
     };
+
     if (isTagsModalOpen && user && hasRole(user, ['admin', 'moderator'])) {
       fetchTags();
     }
@@ -160,15 +161,18 @@ export default function ModerationCard({ discussion, onModerate }) {
       toast.error('Недостаточно прав или тег пуст');
       return;
     }
+
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Токен отсутствует');
+
       const response = await axios.post(
         `${config.apiUrl}/tags`,
         { name: newTag.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       const createdTag = response.data;
       setTags((prev) => [...prev, createdTag]);
       setFilteredTags((prev) => [...prev, createdTag]);
@@ -190,10 +194,12 @@ export default function ModerationCard({ discussion, onModerate }) {
       toast.error('Недостаточно прав для модерации');
       return;
     }
+
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Токен отсутствует');
+
       if (selectedTagIds.length > 0) {
         await axios.post(
           `${config.apiUrl}/discussions/${discussion.id}/tags`,
@@ -201,6 +207,7 @@ export default function ModerationCard({ discussion, onModerate }) {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
+
       await onModerate(discussion.id, 'approved', comment);
       setIsTagsModalOpen(false);
       setIsModalOpen(false);
@@ -220,6 +227,7 @@ export default function ModerationCard({ discussion, onModerate }) {
       toast.error('Недостаточно прав для модерации');
       return;
     }
+
     try {
       await onModerate(discussion.id, 'rejected', comment);
       setIsModalOpen(false);
@@ -238,22 +246,25 @@ export default function ModerationCard({ discussion, onModerate }) {
   return (
     <>
       <style jsx>{`
-          .media-text {
-              font-size: 0.875rem;
-              color: #4b5563;
-              white-space: normal;
-              overflow-wrap: break-word;
-              word-break: break-word;
-              max-width: 100%;
-              margin-bottom: 1rem;
-          }
+        .media-text {
+          font-size: 0.875rem;
+          color: #4b5563;
+          white-space: normal;
+          overflow-wrap: break-word;
+          word-break: break-word;
+          max-width: 100%;
+          margin-bottom: 1rem;
+        }
       `}</style>
+
       {/* Карточка */}
       <div
         className="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-shadow"
         onClick={() => setIsModalOpen(true)}
       >
-        <h2 className="text-xl font-semibold text-gray-800">{discussion?.title || 'Без заголовка'}</h2>
+        <h2 className="text-xl font-semibold text-gray-800">
+          {discussion?.title || 'Без заголовка'}
+        </h2>
         {discussion?.category && (
           <span className="inline-block bg-indigo-100 text-indigo-800 text-sm px-2 py-1 rounded-full mt-2">
             {discussion.category.name}
@@ -268,7 +279,9 @@ export default function ModerationCard({ discussion, onModerate }) {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-white rounded-2xl p-8 w-full max-w-2xl shadow-2xl max-h-[80vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">{discussion?.title || 'Без заголовка'}</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              {discussion?.title || 'Без заголовка'}
+            </h2>
             {discussion?.category && (
               <span className="inline-block bg-indigo-100 text-indigo-800 text-sm px-2 py-1 rounded-full mb-4">
                 {discussion.category.name}
@@ -277,17 +290,17 @@ export default function ModerationCard({ discussion, onModerate }) {
             {discussion?.description && (
               <p className="text-gray-600 mb-4">{discussion.description}</p>
             )}
+
             {isLoading ? (
               <p className="text-gray-500">Загрузка медиа...</p>
             ) : mediaItems.length > 0 ? (
               <div className="space-y-4">
                 {mediaItems.map((media) => {
-                  console.log('Media item:', media); // Отладка
                   const textContent = getTextContent(media);
                   return (
                     <div key={media.id}>
                       {media.type === 'text' && textContent && (
-                        <p className="media-text">{truncateText(textContent, 200)}</p>
+                        <p className="media-text">{textContent}</p>
                       )}
                       {media.type === 'image' && media.content?.image_url && (
                         <img
@@ -334,10 +347,14 @@ export default function ModerationCard({ discussion, onModerate }) {
             ) : (
               <p className="text-gray-500">Медиа отсутствуют</p>
             )}
+
             <p className="text-sm text-gray-500 mt-4">
               Автор: {discussion?.user?.name || 'Неизвестный'} | Создано:{' '}
-              {discussion?.created_at ? new Date(discussion.created_at).toLocaleDateString() : 'Неизвестно'}
+              {discussion?.created_at
+                ? new Date(discussion.created_at).toLocaleDateString()
+                : 'Неизвестно'}
             </p>
+
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
@@ -346,6 +363,7 @@ export default function ModerationCard({ discussion, onModerate }) {
               rows="3"
               disabled={isLoading || !hasRole(user, ['admin', 'moderator'])}
             />
+
             <div className="flex gap-4 mt-4">
               <button
                 onClick={() => setIsTagsModalOpen(true)}
@@ -379,6 +397,7 @@ export default function ModerationCard({ discussion, onModerate }) {
           <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl max-h-[80vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Выберите теги</h2>
             {error && <p className="text-red-600 mb-4">{error}</p>}
+
             <input
               type="text"
               value={searchQuery}
@@ -387,6 +406,7 @@ export default function ModerationCard({ discussion, onModerate }) {
               placeholder="Поиск тегов..."
               disabled={isLoading}
             />
+
             <div className="max-h-60 overflow-y-auto space-y-2">
               {isLoading ? (
                 <p className="text-gray-600">Загрузка тегов...</p>
@@ -413,6 +433,7 @@ export default function ModerationCard({ discussion, onModerate }) {
                 <p className="text-gray-600">Теги не найдены</p>
               )}
             </div>
+
             <div className="mt-4">
               <input
                 type="text"
@@ -430,6 +451,7 @@ export default function ModerationCard({ discussion, onModerate }) {
                 Добавить тег
               </button>
             </div>
+
             <div className="flex gap-4 mt-4">
               <button
                 onClick={handleApprove}

@@ -292,7 +292,7 @@ return (
               <img
                 src={media.content.image_url}
                 alt="Медиа"
-                className="w-full h-64 object-cover rounded-lg"
+                className=" object-cover rounded-lg"
                 onError={(e) => {
                   console.error(`Ошибка загрузки изображения: ${media.content.image_url}`);
                   e.target.src = 'https://placehold.co/600x400';
@@ -303,7 +303,7 @@ return (
               <video
                 src={media.content.video_url}
                 controls
-                className="w-full h-64 object-cover rounded-lg"
+                className="object-cover rounded-lg"
               />
             )}
             {media.type === 'audio' && media.content?.music_url && (

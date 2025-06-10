@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/utils/auth';
+import { isAuthenticated, resetAuthCache } from '@/utils/auth'; // Импортируем resetAuthCache
 import Image from 'next/image';
 import axios from 'axios';
 import config from '@/pages/api/config';
@@ -21,7 +21,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
-  // Проверка аутентификации
+  // Проверка аутентификации при монтировании
   useEffect(() => {
     const checkAuth = async () => {
       const { authenticated, user } = await isAuthenticated();
@@ -32,14 +32,13 @@ export default function Header() {
     checkAuth();
   }, []);
 
-  // Поиск
+  // Поиск — автодополнение
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!searchQuery.trim()) {
         setSuggestions([]);
         return;
       }
-
       try {
         const response = await axios.get(`${config.apiUrl}/autocomplete`, {
           params: { query: searchQuery },
@@ -49,17 +48,19 @@ export default function Header() {
         setSuggestions([]);
       }
     };
-
     fetchSuggestions();
   }, [searchQuery]);
 
+  // Выход пользователя
   const handleLogout = () => {
     localStorage.removeItem('token');
+    resetAuthCache(); // 🚀 Сбрасываем кэш аутентификации
     setIsAuth(false);
     setUser(null);
     router.push('/auth/login');
   };
 
+  // Обработка поиска
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -73,13 +74,12 @@ export default function Header() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
-
       router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
       setSearchQuery('');
       setIsSearchOpen(false);
       setSuggestions([]);
     } catch (err) {
-      setError(err.response?.data?.message || 'Ошибка при сохранении поискового запроса');
+      setError(err.response?.data?.message || 'Ошибка при сохранении запроса');
     }
   };
 
@@ -95,10 +95,10 @@ export default function Header() {
       if (!token) return;
 
       const response = await axios.get(`${config.apiUrl}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const unread = response.data.notifications.filter(n => !n.is_read);
+      const unread = response.data.notifications.filter((n) => !n.is_read);
       setUnreadCount(unread.length);
       setNotifications(response.data.notifications);
     } catch (err) {
@@ -114,16 +114,16 @@ export default function Header() {
     }
   }, [isAuth]);
 
-  // Отображение уведомления
+  // Показ нотификации
   const showNewNotification = (notification) => {
     const notificationElement = document.createElement('div');
-    notificationElement.className = 'fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] translate-x-full transition-transform duration-300 z-50 cursor-pointer';
+    notificationElement.className =
+      'fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 min-w-[300px] max-w-[400px] translate-x-full transition-transform duration-300 z-50 cursor-pointer';
     notificationElement.innerHTML = `
       <div class="text-gray-800 text-sm leading-5">
         <p>${notification.message}</p>
       </div>
     `;
-
     document.body.appendChild(notificationElement);
 
     setTimeout(() => {
@@ -152,6 +152,7 @@ export default function Header() {
       }
     }
   }, [notifications]);
+
 
   return (
     <header className="bg-white shadow-sm fixed top-0 left-0 w-full z-40">
@@ -352,18 +353,6 @@ export default function Header() {
                     className="rounded-full"
                   />
                   <span>{user?.name || 'Профиль'}</span>
-                </Link>
-
-                <Link
-                  href="/notifications"
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded relative"
-                >
-                  <span>Уведомления</span>
-                  {unreadCount > 0 && (
-                    <span className="absolute right-4 top-2 bg-red-500 text-white text-xs font-semibold min-w-[1.25rem] h-5 rounded-full flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
                 </Link>
 
                 <button

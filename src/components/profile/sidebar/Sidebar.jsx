@@ -253,7 +253,7 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
   }
 
   return (
-    <aside className="fixed w-full h-full bg-gray-100 p-4 pt-12 sm:pt-8 shadow-md sm:w-64">
+    <aside className="fixed z-10 w-full h-full bg-gray-100 p-4 pt-12 sm:pt-8 shadow-md sm:w-64">
       {/* Кнопка на главную страницу */}
       <SidebarButton
         isActive={isActive('/')}
@@ -287,6 +287,19 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
           router={router}
           toggleSidebar={toggleSidebar}
         />
+      )}
+
+      {user?.role === 'user' && (
+        <SidebarButton
+          isActive={isActive('/repliesReport')}
+          onClick={() => {
+            router.push('/repliesReport');
+            toggleSidebar?.();
+          }}
+          icon={FaBell}
+        >
+          Жалобы
+        </SidebarButton>
       )}
 
       {user?.role === 'user' && (

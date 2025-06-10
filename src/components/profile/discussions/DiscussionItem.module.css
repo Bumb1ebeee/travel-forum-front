@@ -9,11 +9,11 @@
   transition: box-shadow 0.2s;
 }
 
-@media (max-width: 640px) {
-  .discussionItem {
-    z-index: -1;
-  }
-}
+/*@media (max-width: 640px) {*/
+/*  .discussionItem {*/
+/*    z-index: -1;*/
+/*  }*/
+/*}*/
 
 .mediaMap {
   width: 100%; /* Полная ширина для адаптивности */

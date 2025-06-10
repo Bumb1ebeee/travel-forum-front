@@ -51,7 +51,7 @@ export default function UserSubscriptionsPage() {
   return (
     <SidebarLayout>
       <div className="mt-6 m-3 sm:mt-0">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Подписки на пользователей</h2>
+        <h2 className="text-xl sm:text-2xl mb-3 font-bold text-gray-900">Подписки на пользователей</h2>
         {subscriptions.length === 0 ? (
           <p className="text-gray-600">Вы не подписаны ни на одного пользователя.</p>
         ) : (
