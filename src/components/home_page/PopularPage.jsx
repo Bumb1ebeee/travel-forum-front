@@ -9,20 +9,19 @@ export default function PopularPage({ user }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   const handleCategorySelect = (categoryId) => {
-    console.log('Category selected:', categoryId); // Отладка
+    console.log('Category selected:', categoryId);
     setSelectedCategory(categoryId);
   };
 
   return (
-    <div className="flex p-8 gap-6 mx-auto">
-      <Sidebar
-        onCategorySelect={handleCategorySelect}
-        selectedCategory={selectedCategory}
-      />
-      <PopularContent
-        user={user}
-        selectedCategory={selectedCategory}
-      />
+    <div className="flex flex-col md:flex-row p-1 gap-2 mx-auto max-w-7xl">
+      <div className="md:w-64">
+        <Sidebar
+          onCategorySelect={handleCategorySelect}
+          selectedCategory={selectedCategory}
+        />
+      </div>
+      <PopularContent user={user} selectedCategory={selectedCategory} />
     </div>
   );
 }

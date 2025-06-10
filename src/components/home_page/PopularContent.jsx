@@ -1,16 +1,22 @@
+// components/PopularContent.js
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import config from '@/pages/api/config';
+import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 
-export default function PopularContent({ user, selectedCategory }) {
+
+export default function PopularContent({ user, selectedCategory: initialCategory }) {
   const router = useRouter();
   const [tags, setTags] = useState([]);
   const [discussions, setDiscussions] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState('popular');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 10 });
 
   useEffect(() => {
     const fetchPopularData = async () => {
@@ -19,21 +25,18 @@ export default function PopularContent({ user, selectedCategory }) {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        // Получаем популярные теги
-        const tagsResponse = await axios.get(`${config.apiUrl}/popular-tags`, {
-          headers,
-          params: selectedCategory ? { category_id: selectedCategory } : {},
-        });
-        setTags(tagsResponse.data.tags || []);
+        const params = { page: currentPage, sort_by: sortBy };
+        if (initialCategory) params.category_id = initialCategory;
 
-        // Получаем обсуждения
         const endpoint = token ? '/personalized-discussions' : '/popular-discussions';
-        const discussionsResponse = await axios.get(`${config.apiUrl}${endpoint}`, {
+        const response = await axios.get(`${config.apiUrl}${endpoint}`, {
           headers,
-          params: selectedCategory ? { category_id: selectedCategory } : {},
+          params,
         });
-        console.log('Discussions response:', discussionsResponse.data);
-        setDiscussions(discussionsResponse.data.discussions || []);
+
+        setDiscussions(response.data.discussions || []);
+        setTags(response.data.tags || []);
+        setPagination(response.data.pagination || { current_page: 1, last_page: 1, total: 0, per_page: 10 });
       } catch (err) {
         setError(err.response?.data?.message || 'Ошибка загрузки данных');
       } finally {
@@ -42,7 +45,7 @@ export default function PopularContent({ user, selectedCategory }) {
     };
 
     fetchPopularData();
-  }, [selectedCategory, user]);
+  }, [initialCategory, user, sortBy, currentPage]);
 
   const handleDiscussionClick = async (discussionId) => {
     try {
@@ -56,17 +59,21 @@ export default function PopularContent({ user, selectedCategory }) {
     }
   };
 
-  // Функция для обрезки текста
   const truncateText = (text, maxLength = 200) => {
     if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
-  // Получение текстового контента
   const getTextContent = (media) => {
     if (media.type !== 'text') return null;
     if (typeof media.content === 'string') return media.content;
     return media.content?.text_content || media.content?.text || null;
+  };
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= pagination.last_page) {
+      setCurrentPage(page);
+    }
   };
 
   if (loading) {
@@ -74,7 +81,7 @@ export default function PopularContent({ user, selectedCategory }) {
   }
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 px-0 sm:px-6">
       <style jsx>{`
           .media-text {
               font-size: 0.875rem;
@@ -85,9 +92,36 @@ export default function PopularContent({ user, selectedCategory }) {
               max-width: 100%;
               margin-bottom: 1rem;
           }
+
+          @media (max-width: 768px) {
+              .text-2xl {
+                  font-size: 1.25rem;
+              }
+
+              li {
+                  padding: 1rem;
+              }
+          }
       `}</style>
-      {/* Популярные теги */}
-      <div className="mb-6">
+
+      {/* Sorting Dropdown */}
+      <div className="mb-4">
+        <select
+          value={sortBy}
+          onChange={(e) => {
+            setSortBy(e.target.value);
+            setCurrentPage(1); // Reset to first page on sort change
+          }}
+          className="px-3 py-2 rounded-lg bg-form-bg text-text-primary border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+        >
+          <option value="popular">Популярные</option>
+          <option value="newest">Новые</option>
+          <option value="most_viewed">По просмотрам</option>
+        </select>
+      </div>
+
+      {/* Popular Tags */}
+      <div className="mb-2 sm:mb-6">
         <h2 className="text-2xl font-bold text-text-primary mb-4">Популярные теги</h2>
         {error && <p className="text-error-text text-center mb-4">{error}</p>}
         {tags.length === 0 ? (
@@ -107,9 +141,9 @@ export default function PopularContent({ user, selectedCategory }) {
         )}
       </div>
 
-      {/* Обсуждения */}
-      <div className="bg-form-bg rounded-2xl p-6">
-        <h2 className="text-2xl font-bold text-text-primary mb-4">
+      {/* Discussions */}
+      <div className="bg-form-bg rounded-2xl p-3 sm:p-6">
+        <h2 className="text-2xl font-bold text-text-primary mb-2 sm:mb-4">
           {user ? 'Рекомендуемые обсуждения' : 'Популярные обсуждения'}
         </h2>
         {discussions.length === 0 ? (
@@ -128,10 +162,10 @@ export default function PopularContent({ user, selectedCategory }) {
                     {truncateText(discussion.description, 200)}
                   </p>
                 )}
+
                 <div className="mt-2 space-y-2">
                   {discussion.media && discussion.media.length > 0 ? (
                     discussion.media.map((media) => {
-                      console.log('Media:', media); // Отладка структуры медиа
                       const textContent = getTextContent(media);
                       return (
                         <div key={media.id}>
@@ -144,7 +178,6 @@ export default function PopularContent({ user, selectedCategory }) {
                               alt="Discussion Image"
                               className="w-full h-48 object-cover rounded-lg"
                               onError={(e) => {
-                                console.error(`Ошибка загрузки изображения: ${media.content.image_url}`);
                                 e.target.src = 'https://placehold.co/600x400';
                               }}
                             />
@@ -170,10 +203,12 @@ export default function PopularContent({ user, selectedCategory }) {
                     <p className="text-gray-500 text-sm">Медиа отсутствуют</p>
                   )}
                 </div>
+
                 <p className="text-sm text-gray-500 mt-2">
                   Автор: {discussion.user?.name || 'Неизвестный'} | Создано:{' '}
                   {new Date(discussion.created_at).toLocaleDateString()}
                 </p>
+
                 {discussion.tags && discussion.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {discussion.tags.map((tag) => (
@@ -190,6 +225,27 @@ export default function PopularContent({ user, selectedCategory }) {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="mt-6 flex justify-center gap-2">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-4 py-2 bg-form-bg text-text-primary rounded-lg disabled:opacity-50"
+        >
+          <FaArrowLeft/>
+        </button>
+        <span className="px-4 py-2 text-text-primary">
+          {pagination.current_page}/{pagination.last_page}
+        </span>
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === pagination.last_page}
+          className="px-4 py-2 bg-form-bg text-text-primary rounded-lg disabled:opacity-50"
+        >
+          <FaArrowRight/>
+        </button>
       </div>
     </div>
   );

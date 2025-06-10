@@ -1,7 +1,7 @@
 import React from 'react';
 
 const UserInfo = ({ user, editMode, formData, handleChange, setEditMode, handleSubmit, submitting }) => (
-  <div className="space-y-6">
+  <div className="space-y-3 sm:space-y-6">
     {editMode ? (
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>

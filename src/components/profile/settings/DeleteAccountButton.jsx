@@ -2,7 +2,7 @@ import React from 'react';
 
 const DeleteAccountButton = ({ handleDeleteAccount, submitting }) => (
   <div>
-    <h3 className="text-xl font-semibold text-gray-700 mb-4">Удалить аккаунт</h3>
+    <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Удалить аккаунт</h3>
     <p className="text-gray-600 mb-4">
       Удаление аккаунта приведет к полной очистке ваших данных. Это действие нельзя отменить.
     </p>

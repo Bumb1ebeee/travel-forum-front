@@ -48,16 +48,14 @@ export default function NewDiscussionPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Создание нового обсуждения</h1>
         <DiscussionForm
           isEdit={false}
           categories={categories}
-          setIsModalOpen={() => router.push('/discussions/drafts')}
+          setIsModalOpen={() => router.push('/discussions/list/drafts')}
           submitting={false}
           error=""
         />
-      </div>
     </SidebarLayout>
   );
 }

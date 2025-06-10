@@ -30,9 +30,7 @@ export default function Profile() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <UserProfile user={user} setUser={setUser} />
-      </div>
     </SidebarLayout>
   );
 }

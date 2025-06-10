@@ -2,7 +2,7 @@ import React from 'react';
 
 const PasswordChangeForm = ({ passwordData, handlePasswordChange, handlePasswordSubmit, submitting, error, success }) => (
   <div>
-    <h3 className="text-xl font-semibold text-gray-700 mb-4">Изменить пароль</h3>
+    <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Изменить пароль</h3>
     {error && <p className="text-red-500 mb-4">{error}</p>}
     {success && <p className="text-green-500 mb-4">{success}</p>}
     <form onSubmit={handlePasswordSubmit} className="space-y-6">

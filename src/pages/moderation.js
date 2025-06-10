@@ -33,9 +33,7 @@ export default function Moderation() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <ModerationContent user={user} />
-      </div>
     </SidebarLayout>
   );
 }

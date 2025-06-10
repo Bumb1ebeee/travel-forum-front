@@ -35,7 +35,7 @@ const DiscussionsMenu = ({ isActive, drafts, published, pending, rejected, route
           <li>
             <button
               className="w-full text-left text-gray-700 hover:text-indigo-600 transition-colors"
-              onClick={() => router.push('/discussions/drafts')}
+              onClick={() => router.push('/discussions/list/drafts')}
             >
               Черновики ({drafts.length})
             </button>
@@ -43,7 +43,7 @@ const DiscussionsMenu = ({ isActive, drafts, published, pending, rejected, route
           <li>
             <button
               className="w-full text-left text-gray-700 hover:text-indigo-600 transition-colors"
-              onClick={() => router.push('/discussions/published')}
+              onClick={() => router.push('/discussions/list/published')}
             >
               Опубликованные ({published.length})
             </button>
@@ -51,7 +51,7 @@ const DiscussionsMenu = ({ isActive, drafts, published, pending, rejected, route
           <li>
             <button
               className="w-full text-left text-gray-700 hover:text-indigo-600 transition-colors"
-              onClick={() => router.push('/discussions/pending')}
+              onClick={() => router.push('/discussions/list/pending')}
             >
               В ожидании ({pending.length})
             </button>
@@ -59,7 +59,7 @@ const DiscussionsMenu = ({ isActive, drafts, published, pending, rejected, route
           <li>
             <button
               className="w-full text-left text-gray-700 hover:text-indigo-600 transition-colors"
-              onClick={() => router.push('/discussions/rejected')}
+              onClick={() => router.push('/discussions/list/rejected')}
             >
               Отклоненные ({rejected.length})
             </button>

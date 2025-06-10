@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import RegisterForm from '@/components/auth/RegisterForm';
+import MainLayout from "@/layouts/main.layout";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,8 +12,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <RegisterForm onSuccess={handleSuccess} />
-    </div>
+    <MainLayout>
+      <div className="min-h-screen flex items-center justify-center">
+        <RegisterForm onSuccess={handleSuccess}/>
+      </div>
+    </MainLayout>
   );
 }

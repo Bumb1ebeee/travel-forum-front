@@ -29,9 +29,7 @@ export default function StaffPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <StaffManagement />
-      </div>
     </SidebarLayout>
   );
 } 

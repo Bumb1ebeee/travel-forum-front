@@ -117,9 +117,9 @@ export default function SettingsContent({ user, setUser }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8">
-        <h2 className="text-3xl font-bold text-gray-800 text-center mb-8">Настройки</h2>
+    <div className="min-h-screen p-3 sm:p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-3 sm:p-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Настройки</h1>
         {error && (
           <p className="text-red-500 text-center mb-6 bg-red-100 p-3 rounded-lg">{error}</p>
         )}
@@ -127,7 +127,7 @@ export default function SettingsContent({ user, setUser }) {
           <p className="text-green-500 text-center mb-6 bg-green-100 p-3 rounded-lg">{success}</p>
         )}
 
-        <div className="space-y-12">
+        <div className="space-y-6">
           <PasswordChangeForm
             passwordData={passwordData}
             handlePasswordChange={handlePasswordChange}
@@ -137,13 +137,13 @@ export default function SettingsContent({ user, setUser }) {
             success={success}
           />
 
-          <NotificationsForm
-            notifications={notifications}
-            handleNotificationChange={handleNotificationChange}
-            handleNotificationsSubmit={handleNotificationsSubmit}
-            submitting={submitting}
-            success={success}
-          />
+          {/*<NotificationsForm*/}
+          {/*  notifications={notifications}*/}
+          {/*  handleNotificationChange={handleNotificationChange}*/}
+          {/*  handleNotificationsSubmit={handleNotificationsSubmit}*/}
+          {/*  submitting={submitting}*/}
+          {/*  success={success}*/}
+          {/*/>*/}
 
           <TwoFactorAuthForm
             user={user}

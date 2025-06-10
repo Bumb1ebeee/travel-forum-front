@@ -96,7 +96,7 @@ export default function TwoFactorAuthForm({ user, submitting }) {
 
   return (
     <div className="border-t pt-8">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Двухфакторная аутентификация</h3>
+      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Двухфакторная аутентификация</h3>
       {error && (
         <p className="text-red-500 text-center mb-4 bg-red-100 p-3 rounded-lg">{error}</p>
       )}
@@ -123,7 +123,7 @@ export default function TwoFactorAuthForm({ user, submitting }) {
           <button
             onClick={handleEnable2FA}
             disabled={submitting || loading}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 mb-4"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 mb-4"
           >
             Включить 2FA
           </button>

@@ -1,16 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { isAuthenticated } from '@/utils/auth';
 import DiscussionsPage from '@/components/profile/discussions/Discussions';
 import SidebarLayout from '@/layouts/sidebar.layout';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
 
-export default function PendingPage() {
+const typeTitles = {
+  drafts: 'Черновики обсуждений',
+  pending: 'Обсуждения в ожидании',
+  published: 'Опубликованные обсуждения',
+  rejected: 'Отклоненные обсуждения'
+};
+
+export default function DiscussionsTypePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const params = useParams();
+  const type = params?.type || 'drafts';
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -31,9 +40,9 @@ export default function PendingPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">Обсуждения в ожидании</h2>
-        <DiscussionsPage user={user} type="pending" />
+      <div className="mt-6 m-3 sm:mt-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{typeTitles[type]}</h2>
+        <DiscussionsPage user={user} type={type}/>
       </div>
     </SidebarLayout>
   );

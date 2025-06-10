@@ -39,7 +39,7 @@ export default function ReportCard({ report, onModerate, type }) {
   return (
     <>
       <div
-        className="bg-white p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+        className="mx-2 bg-white p-3 sm:p-6 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-shadow"
         onClick={() => setIsModalOpen(true)}
       >
         <div className="flex justify-between items-start mb-4">

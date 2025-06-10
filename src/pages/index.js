@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import { isAuthenticated } from '@/utils/auth';
 import PopularPage from '@/components/home_page/PopularPage';
 import HeroSlider from '@/components/home_page/HeroSlider';
+import MainLayout from "@/layouts/main.layout";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -28,13 +29,15 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen bg-primary-bg">
-      <main className="flex-1 p-8">
-        <div className="mb-8">
-          <HeroSlider />
-        </div>
-        <PopularPage user={user} />
-      </main>
-    </div>
+    <MainLayout>
+      <div className="flex min-h-screen bg-primary-bg">
+        <main className="flex-1 p-3 sm:p-8">
+          <div className="mb-8">
+            <HeroSlider/>
+          </div>
+          <PopularPage user={user}/>
+        </main>
+      </div>
+    </MainLayout>
   );
 }

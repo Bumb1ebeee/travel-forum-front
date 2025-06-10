@@ -50,15 +50,15 @@ export default function UserSubscriptionsPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">Подписки на пользователей</h2>
+      <div className="mt-6 m-3 sm:mt-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Подписки на пользователей</h2>
         {subscriptions.length === 0 ? (
           <p className="text-gray-600">Вы не подписаны ни на одного пользователя.</p>
         ) : (
           <ul className="space-y-4">
             {subscriptions.map((sub) => (
               <li
-                key={sub.id}
+                key={sub.user.id}
                 className="p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => router.push(`/users/${sub.user.id}`)}
               >
@@ -68,7 +68,7 @@ export default function UserSubscriptionsPage() {
                     alt={sub.user.name}
                     className="w-10 h-10 rounded-full mr-4"
                   />
-                  <span className="text-lg text-gray-800">{sub.user.name}</span>
+                  <p><span className="text-lg text-gray-800">{sub.user.name}</span></p>
                 </div>
               </li>
             ))}

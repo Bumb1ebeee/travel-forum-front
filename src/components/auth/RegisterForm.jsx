@@ -82,9 +82,9 @@ export default function RegisterForm({ onSuccess }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="p-8 bg-white rounded-xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6">Регистрация</h2>
+    <div className="min-h-screen flex m-2 items-center justify-center">
+      <form onSubmit={handleSubmit} className="p-3 sm:p-8 bg-white rounded-xl shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-2 sm:mb-6">Регистрация</h2>
         {error && <p className="text-red-600 text-center mb-4">{error}</p>}
 
         <input

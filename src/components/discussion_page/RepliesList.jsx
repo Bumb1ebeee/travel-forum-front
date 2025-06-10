@@ -179,7 +179,7 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
   };
 
   return (
-    <li className="py-2" style={{ marginLeft: `${indent}px` }}>
+    <li className="sm:py-2" style={{ marginLeft: `${indent}px` }}>
       <div className="flex items-start space-x-2">
         <div className={`flex-shrink-0 w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold`}>
           {userInitial}
@@ -302,22 +302,39 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
 };
 
 const RepliesList = ({ replies, isJoined, setReplyTo }) => {
+  const [visibleRepliesCount, setVisibleRepliesCount] = useState(5); // Initially show 5 replies
+  const visibleReplies = replies.slice(0, visibleRepliesCount);
+  const hasMoreReplies = replies.length > visibleRepliesCount;
+
+  const loadMoreReplies = () => {
+    setVisibleRepliesCount((prev) => prev + 5); // Load 5 more replies
+  };
+
   return (
-    <div className="bg-white p-4">
-      <h2 className="text-xl font-bold text-black mb-4">Комментарии</h2>
+    <div className="bg-white p-1 sm:p-4">
       {replies.length === 0 ? (
         <p className="text-gray-600">Комментариев пока нет. Будьте первым!</p>
       ) : (
-        <ul className="space-y-2">
-          {replies.map((reply) => (
-            <ReplyItem
-              key={reply.id}
-              reply={reply}
-              isJoined={isJoined}
-              setReplyTo={setReplyTo}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-2">
+            {visibleReplies.map((reply) => (
+              <ReplyItem
+                key={reply.id}
+                reply={reply}
+                isJoined={isJoined}
+                setReplyTo={setReplyTo}
+              />
+            ))}
+          </ul>
+          {hasMoreReplies && (
+            <button
+              onClick={loadMoreReplies}
+              className="mt-4 px-4 py-2 bg-form-bg text-text-primary rounded-lg hover:bg-button-hover transition-colors"
+            >
+              Далее ({replies.length - visibleRepliesCount})
+            </button>
+          )}
+        </>
       )}
     </div>
   );

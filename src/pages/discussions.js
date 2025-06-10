@@ -32,9 +32,7 @@ export default function Discussions() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <DiscussionsPage user={user} />
-      </div>
     </SidebarLayout>
   );
 }

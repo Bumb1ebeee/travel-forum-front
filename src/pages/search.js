@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import config from '@/pages/api/config';
-import SearchResults from '@/components/search/SearchResults';
+import MainLayout from "@/layouts/main.layout";
+import DiscussionCard from '@/components/DiscussionCard';
 
 export default function Search() {
   const router = useRouter();
@@ -49,24 +50,27 @@ export default function Search() {
   };
 
   return (
-    <div className="flex min-h-screen bg-primary-bg">
-      <main className="flex-1 p-8">
-        <div className="bg-form-bg rounded-2xl p-6">
-          <h2 className="text-2xl font-bold text-text-primary mb-4">
-            Результаты поиска: {query}
-          </h2>
-          {loading && <p className="text-text-secondary text-center mb-4">Загрузка...</p>}
-          {error && <p className="text-error-text text-center mb-4">{error}</p>}
-          {!loading && discussions.length === 0 ? (
-            <p className="text-text-secondary text-center">Ничего не найдено.</p>
-          ) : (
-            <SearchResults
-              discussions={discussions}
-              handleDiscussionClick={handleDiscussionClick}
-            />
-          )}
-        </div>
-      </main>
-    </div>
+    <MainLayout>
+      <div className="flex min-h-screen bg-primary-bg">
+        <main className="flex-1 p-3 mt-12 sm:p-8">
+          <div className="bg-form-bg rounded-2xl p-2 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-2 sm:mb-4">
+              Результаты поиска: {query}
+            </h2>
+            {loading && <p className="text-text-secondary text-center mb-4">Загрузка...</p>}
+            {error && <p className="text-error-text text-center mb-4">{error}</p>}
+            {!loading && discussions.length === 0 ? (
+              <p className="text-text-secondary text-center">Ничего не найдено.</p>
+            ) : (
+              <ul className="space-y-4">
+                {discussions.map((discussion) => (
+                  <DiscussionCard key={discussion.id} discussion={discussion} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </main>
+      </div>
+    </MainLayout>
   );
 }

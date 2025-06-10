@@ -77,7 +77,7 @@ const DiscussionsPage = ({ user, type = 'all' }) => {
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-primary-bg p-8">
+    <div className="min-h-screen bg-primary-bg m-3 p-2 sm:p-8">
       <div className="max-w-4xl mx-auto">
         {discussions.length === 0 ? (
           <div className="bg-white p-6 rounded-xl shadow-md text-center text-gray-500">

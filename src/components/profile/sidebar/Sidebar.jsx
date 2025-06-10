@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { FaUser, FaCog, FaGavel, FaBell, FaExclamationTriangle, FaChartLine, FaUserShield, FaClipboardList, FaBook } from 'react-icons/fa';
+import { FaUser, FaCog, FaGavel, FaBell, FaExclamationTriangle, FaChartLine, FaUserShield, FaHome } from 'react-icons/fa';
 import axios from 'axios';
 import config from '@/pages/api/config';
 import { isAuthenticated } from '@/utils/auth';
@@ -24,7 +24,7 @@ const sidebarCache = {
   CACHE_DURATION: 5 * 60 * 1000, // 5 минут
 };
 
-// Простая функция для debounce
+// Простая функция debounce
 const debounce = (func, wait) => {
   let timeout;
   return (...args) => {
@@ -33,9 +33,10 @@ const debounce = (func, wait) => {
   };
 };
 
-const Sidebar = React.memo(() => {
+const Sidebar = React.memo(({ toggleSidebar }) => {
   const router = useRouter();
   const pathname = usePathname();
+
   const [user, setUser] = useState(null);
   const [userSubscriptions, setUserSubscriptions] = useState(sidebarCache.userSubscriptions);
   const [discussionSubscriptions, setDiscussionSubscriptions] = useState(sidebarCache.discussionSubscriptions);
@@ -46,8 +47,9 @@ const Sidebar = React.memo(() => {
   const [rejected, setRejected] = useState(sidebarCache.rejected);
   const [unreadNotifications, setUnreadNotifications] = useState(sidebarCache.unreadNotifications);
   const [loading, setLoading] = useState(true);
-  const requestInProgress = useRef(false); // Флаг для предотвращения параллельных запросов
-  const isMounted = useRef(false); // Флаг для отслеживания монтирования
+
+  const requestInProgress = useRef(false);
+  const isMounted = useRef(false);
 
   const isActive = (path) => pathname === path;
 
@@ -62,7 +64,7 @@ const Sidebar = React.memo(() => {
     }
   }, [router]);
 
-  // Проверка, нужно ли обновлять данные
+  // Проверка необходимости обновления данных
   const shouldFetchData = () => {
     const now = Date.now();
     return !sidebarCache.lastFetchTime || now - sidebarCache.lastFetchTime > sidebarCache.CACHE_DURATION;
@@ -73,12 +75,10 @@ const Sidebar = React.memo(() => {
     if (!user || user.role === 'moderator' || userSubscriptions.length > 0 || requestInProgress.current || !shouldFetchData()) {
       return;
     }
-
     requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-
       const response = await axios.get(`${config.apiUrl}/subscriptions/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -98,12 +98,10 @@ const Sidebar = React.memo(() => {
     if (!user || user.role === 'moderator' || discussionSubscriptions.length > 0 || requestInProgress.current || !shouldFetchData()) {
       return;
     }
-
     requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-
       const response = await axios.get(`${config.apiUrl}/subscriptions/discussions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -123,12 +121,10 @@ const Sidebar = React.memo(() => {
     if (!user || user.role === 'moderator' || archiveSubscriptions.length > 0 || requestInProgress.current || !shouldFetchData()) {
       return;
     }
-
     requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-
       const response = await axios.get(`${config.apiUrl}/discussions/archived`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -148,7 +144,6 @@ const Sidebar = React.memo(() => {
     if (!user || (drafts.length > 0 && published.length > 0 && pending.length > 0 && rejected.length > 0) || requestInProgress.current || !shouldFetchData()) {
       return;
     }
-
     requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
@@ -156,52 +151,34 @@ const Sidebar = React.memo(() => {
         console.warn('Токен отсутствует, обсуждения не загружаются');
         return;
       }
-
-      const endpoints = [
-        '/discussions/drafts',
-        '/discussions/published',
-        '/discussions/pending',
-        '/discussions/rejected',
-      ];
-
+      const endpoints = ['/discussions/drafts', '/discussions/published', '/discussions/pending', '/discussions/rejected'];
       const responses = await Promise.all(
-        endpoints.map(endpoint =>
-          axios.get(`${config.apiUrl}${endpoint}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(err => ({
-            error: err,
-            endpoint,
-            data: { discussions: [] },
-          }))
+        endpoints.map((endpoint) =>
+          axios
+            .get(`${config.apiUrl}${endpoint}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .catch((err) => ({
+              error: err,
+              endpoint,
+              data: { discussions: [] },
+            }))
         )
       );
-
       const [draftsRes, publishedRes, pendingRes, rejectedRes] = responses;
-
-      if (draftsRes.error) {
-        console.error('Ошибка загрузки черновиков:', draftsRes.error.response?.data || draftsRes.error.message);
-      }
-      if (publishedRes.error) {
-        console.error('Ошибка загрузки опубликованных обсуждений:', publishedRes.error.response?.data || publishedRes.error.message);
-      }
-      if (pendingRes.error) {
-        console.error('Ошибка загрузки ожидающих обсуждений:', pendingRes.error.response?.data || pendingRes.error.message);
-      }
-      if (rejectedRes.error) {
-        console.error('Ошибка загрузки отклонённых обсуждений:', rejectedRes.error.response?.data || rejectedRes.error.message);
-      }
-
+      if (draftsRes.error) console.error('Ошибка загрузки черновиков:', draftsRes.error.response?.data || draftsRes.error.message);
+      if (publishedRes.error) console.error('Ошибка загрузки опубликованных обсуждений:', publishedRes.error.response?.data || publishedRes.error.message);
+      if (pendingRes.error) console.error('Ошибка загрузки ожидающих обсуждений:', pendingRes.error.response?.data || pendingRes.error.message);
+      if (rejectedRes.error) console.error('Ошибка загрузки отклонённых обсуждений:', rejectedRes.error.response?.data || rejectedRes.error.message);
       const newDrafts = draftsRes.data.discussions || [];
       const newPublished = publishedRes.data.discussions || [];
       const newPending = pendingRes.data.discussions || [];
       const newRejected = rejectedRes.data.discussions || [];
-
       sidebarCache.drafts = newDrafts;
       sidebarCache.published = newPublished;
       sidebarCache.pending = newPending;
       sidebarCache.rejected = newRejected;
       sidebarCache.lastFetchTime = Date.now();
-
       setDrafts(newDrafts);
       setPublished(newPublished);
       setPending(newPending);
@@ -217,7 +194,6 @@ const Sidebar = React.memo(() => {
   const fetchNotifications = useCallback(
     debounce(async () => {
       if (requestInProgress.current || !shouldFetchData()) return;
-
       requestInProgress.current = true;
       try {
         const token = localStorage.getItem('token');
@@ -225,12 +201,11 @@ const Sidebar = React.memo(() => {
           console.warn('Токен отсутствует, уведомления не загружаются');
           return;
         }
-
         const response = await axios.get(`${config.apiUrl}/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const notifications = response.data.notifications || [];
-        const unreadCount = notifications.filter(notification => !notification.is_read).length;
+        const unreadCount = notifications.filter((notification) => !notification.is_read).length;
         sidebarCache.unreadNotifications = unreadCount;
         sidebarCache.lastFetchTime = Date.now();
         setUnreadNotifications(unreadCount);
@@ -239,7 +214,7 @@ const Sidebar = React.memo(() => {
       } finally {
         requestInProgress.current = false;
       }
-    }, 1000), // Задержка 1 секунда
+    }, 1000),
     []
   );
 
@@ -254,7 +229,6 @@ const Sidebar = React.memo(() => {
   // Загрузка данных при наличии пользователя
   useEffect(() => {
     if (!user) return;
-
     const fetchData = async () => {
       await Promise.all([
         fetchNotifications(),
@@ -264,35 +238,46 @@ const Sidebar = React.memo(() => {
         user.role === 'user' && fetchArchiveSubscriptions(),
       ].filter(Boolean));
     };
-
     fetchData();
-
-    // Установка интервала для уведомлений только для пользователей
     let interval;
     if (user.role === 'user') {
-      interval = setInterval(fetchNotifications, 60000); // 60 секунд
+      interval = setInterval(fetchNotifications, 60000);
     }
-
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [user, fetchNotifications, fetchDiscussions, fetchUserSubscriptions, fetchDiscussionSubscriptions, fetchArchiveSubscriptions]);
 
   if (loading) {
-    return <div className="w-64 bg-gray-100 p-4 shadow-md">Загрузка...</div>;
+    return <div className="w-64 bg-gray-100 p-4 pt-8 shadow-md">Загрузка...</div>;
   }
 
   return (
-    <aside className="w-64 h-[calc(100vh-64px)] bg-gray-100 p-4 shadow-md overflow-y-auto scrollbar-hidden">
+    <aside className="fixed w-full h-full bg-gray-100 p-4 pt-12 sm:pt-8 shadow-md sm:w-64">
+      {/* Кнопка на главную страницу */}
+      <SidebarButton
+        isActive={isActive('/')}
+        onClick={() => {
+          router.push('/');
+          toggleSidebar?.();
+        }}
+        icon={FaHome}
+      >
+        Главная
+      </SidebarButton>
+
       <SidebarButton
         isActive={isActive('/profile')}
-        onClick={() => router.push('/profile')}
+        onClick={() => {
+          router.push('/profile');
+          toggleSidebar?.();
+        }}
         icon={FaUser}
       >
         Профиль
       </SidebarButton>
 
-      {user.role === 'user' && (
+      {user?.role === 'user' && (
         <DiscussionsMenu
           isActive={isActive('/discussions')}
           drafts={drafts}
@@ -300,10 +285,11 @@ const Sidebar = React.memo(() => {
           pending={pending}
           rejected={rejected}
           router={router}
+          toggleSidebar={toggleSidebar}
         />
       )}
 
-      {user.role === 'user' && (
+      {user?.role === 'user' && (
         <SubscriptionsMenu
           isActive={
             isActive('/subscriptions/users') ||
@@ -314,69 +300,66 @@ const Sidebar = React.memo(() => {
           discussionSubscriptions={discussionSubscriptions}
           archiveSubscriptions={archiveSubscriptions}
           router={router}
+          toggleSidebar={toggleSidebar}
         />
       )}
 
-      {user.role === 'moderator' && (
+      {user?.role === 'moderator' && (
         <>
           <SidebarButton
             isActive={isActive('/moderation')}
-            onClick={() => router.push('/moderation')}
+            onClick={() => {
+              router.push('/moderation');
+              toggleSidebar?.();
+            }}
             icon={FaGavel}
           >
             Модерация
           </SidebarButton>
-
           <SidebarButton
             isActive={isActive('/reports')}
-            onClick={() => router.push('/reports')}
+            onClick={() => {
+              router.push('/reports');
+              toggleSidebar?.();
+            }}
             icon={FaExclamationTriangle}
           >
             Жалобы
           </SidebarButton>
         </>
       )}
+
       <SidebarButton
         isActive={isActive('/admin/dashboard')}
-        onClick={() => router.push('/admin/dashboard')}
+        onClick={() => {
+          router.push('/admin/dashboard');
+          toggleSidebar?.();
+        }}
         icon={FaChartLine}
       >
         Статистика
       </SidebarButton>
 
-      {user.role === 'admin' && (
-        <>
-          <SidebarButton
-            isActive={isActive('/admin/staff')}
-            onClick={() => router.push('/admin/staff')}
-            icon={FaUserShield}
-          >
-            Сотрудники
-          </SidebarButton>
-          {/*<SidebarButton*/}
-          {/*  isActive={isActive('/admin/tests')}*/}
-          {/*  onClick={() => router.push('/admin/tests')}*/}
-          {/*  icon={FaClipboardList}*/}
-          {/*>*/}
-          {/*  Тесты*/}
-          {/*</SidebarButton>*/}
-        </>
+      {user?.role === 'admin' && (
+        <SidebarButton
+          isActive={isActive('/admin/staff')}
+          onClick={() => {
+            router.push('/admin/staff');
+            toggleSidebar?.();
+          }}
+          icon={FaUserShield}
+        >
+          Сотрудники
+        </SidebarButton>
       )}
 
-      {/*{user.role === 'user' && (*/}
-      {/*  <SidebarButton*/}
-      {/*    isActive={isActive('/tests')}*/}
-      {/*    onClick={() => router.push('/tests')}*/}
-      {/*    icon={FaBook}*/}
-      {/*  >*/}
-      {/*    Тесты*/}
-      {/*  </SidebarButton>*/}
-      {/*)}*/}
-
-      {user.role === 'user' && (
+      {user?.role === 'user' && (
         <SidebarButton
           isActive={isActive('/notifications')}
-          onClick={() => router.push('/notifications')}
+          onClick={() => {
+            router.push('/notifications');
+            toggleSidebar?.();
+          }}
           icon={FaBell}
           badge={unreadNotifications}
         >
@@ -386,7 +369,10 @@ const Sidebar = React.memo(() => {
 
       <SidebarButton
         isActive={isActive('/settings')}
-        onClick={() => router.push('/settings')}
+        onClick={() => {
+          router.push('/settings');
+          toggleSidebar?.();
+        }}
         icon={FaCog}
       >
         Настройки
@@ -395,7 +381,7 @@ const Sidebar = React.memo(() => {
   );
 });
 
-// Функция для сброса кэша (например, при выходе или изменении данных)
+// Функция для сброса кэша
 export const resetSidebarCache = () => {
   sidebarCache.userSubscriptions = [];
   sidebarCache.discussionSubscriptions = [];

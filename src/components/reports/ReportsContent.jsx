@@ -70,7 +70,7 @@ export default function ReportsContent({ type, user }) {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-3 sm:gap-6">
       {reports.map((report) => (
         <ReportCard
           key={report.id}

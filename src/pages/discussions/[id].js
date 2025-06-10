@@ -3,11 +3,11 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import config from '@/pages/api/config';
 import DiscussionHeader from '@/components/discussion_page/DiscussionHeader';
-import RouteMap from '@/components/discussion_page/RouteMap';
 import RepliesList from '@/components/discussion_page/RepliesList';
 import ReplyForm from '@/components/discussion_page/ReplyForm';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
 import ErrorMessage from '@/components/error/ErrorMessage';
+import MainLayout from "@/layouts/main.layout";
 
 export default function DiscussionPage() {
   const router = useRouter();
@@ -106,39 +106,44 @@ export default function DiscussionPage() {
   }
 
   return (
-    <div className="min-h-screen relative py-12 px-4 sm:px-6 lg:px-8">
-      <div className="absolute inset-0 bg-[url('/image/background.png')] bg-repeat bg-[length:200px_200px] opacity-10 -z-10"></div>
-      <div className="max-w-7xl mx-auto relative">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Основной контент */}
-          <div className="flex-1 space-y-8">
-            <DiscussionHeader discussion={discussion} isJoined={isJoined} handleJoin={handleJoin} />
+    <MainLayout>
+      <div className="min-h-screen relative py-12 px-4 sm:px-6 lg:px-8">
+        <div
+          className="absolute inset-0 bg-[url('/image/background.png')] bg-repeat bg-[length:200px_200px] opacity-10 -z-10"></div>
+        <div className="max-w-7xl mx-auto relative">
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-8">
+            {/* Основной контент */}
+            <div className="flex-1 space-y-8">
+              <DiscussionHeader discussion={discussion} isJoined={isJoined} handleJoin={handleJoin}/>
 
-            {error && <ErrorMessage message={error} />}
+              {error && <ErrorMessage message={error}/>}
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Ответы</h2>
-              <RepliesList replies={replies} isJoined={isJoined} setReplyTo={setReplyTo} />
-            </div>
-          </div>
-
-          {/* Форма ответов */}
-          {isJoined && (
-            <div className="lg:w-96 fixed bottom-2 right-4 custom:sticky custom:top-8 custom:right-auto custom:self-start custom:max-h-[calc(100vh-4rem)] custom:overflow-y-auto z-20">
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md">
-                <ReplyForm
-                  newReply={newReply}
-                  setNewReply={setNewReply}
-                  handleReply={handleReply}
-                  replyTo={replyTo}
-                  setReplyTo={setReplyTo}
-                  replies={replies}
-                />
+              <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 sm:mb-6">Ответы</h2>
+                <RepliesList replies={replies} isJoined={isJoined} setReplyTo={setReplyTo}/>
               </div>
             </div>
-          )}
+
+            {/* Форма ответов */}
+            {isJoined && (
+              <div
+                className="lg:w-96 fixed bottom-2 right-4 custom:sticky custom:top-8 custom:right-auto custom:self-start custom:max-h-[calc(100vh-4rem)] custom:overflow-y-auto z-20">
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md">
+                  <ReplyForm
+                    newReply={newReply}
+                    setNewReply={setNewReply}
+                    handleReply={handleReply}
+                    replyTo={replyTo}
+                    setReplyTo={setReplyTo}
+                    replies={replies}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
+
   );
 }

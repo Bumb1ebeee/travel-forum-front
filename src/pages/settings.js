@@ -29,9 +29,7 @@ export default function Settings() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <SettingsContent user={user} setUser={setUser} />
-      </div>
     </SidebarLayout>
   );
 }

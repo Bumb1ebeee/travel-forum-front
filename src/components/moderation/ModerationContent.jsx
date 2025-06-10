@@ -39,7 +39,7 @@ export default function ModerationContent({ user }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto p-3 mt-2">
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Модерация обсуждений</h1>
       {error && <p className="text-red-500 text-center mb-6 bg-red-100 p-3 rounded-lg">{error}</p>}
       {discussions.length === 0 ? (

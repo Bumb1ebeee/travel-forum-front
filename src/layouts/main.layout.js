@@ -5,6 +5,9 @@ export default function MainLayout({ children }) {
   return (
     <>
       <Header />
-      {children}
+      <div className="mt-6">
+        {children}
+      </div>
+
     </>
   )}

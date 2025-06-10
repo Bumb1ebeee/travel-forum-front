@@ -50,8 +50,8 @@ export default function ArchiveSubscriptionsPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">Архив подписок на обсуждения</h2>
+      <div className="mt-6 m-3 sm:mt-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Архив подписок на обсуждения</h2>
         {archivedSubscriptions.length === 0 ? (
           <p className="text-gray-600">Нет архивированных подписок.</p>
         ) : (

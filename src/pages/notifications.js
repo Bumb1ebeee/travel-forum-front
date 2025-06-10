@@ -97,16 +97,9 @@ export default function NotificationsPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Уведомления</h1>
-          <button
-            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-          >
-            {showOnlyUnread ? 'Показать все' : 'Только непрочитанные'}
-          </button>
-        </div>
+      <div className="p-2 sm:m-4 m-2 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Уведомления</h1>
+
         {filteredNotifications.length === 0 ? (
           <p className="text-gray-600">
             {showOnlyUnread ? 'Нет непрочитанных уведомлений.' : 'Нет уведомлений.'}
@@ -132,7 +125,7 @@ export default function NotificationsPage() {
                       {notification.message}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {new Date(notification.created_at).toLocaleString()}
+                      {new Date(notification.published_at).toLocaleString()}
                     </p>
                   </div>
                 </div>

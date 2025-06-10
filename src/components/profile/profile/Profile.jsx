@@ -121,8 +121,8 @@ export default function UserProfile({ user, setUser }) {
   };
 
   return (
-    <div className="py-4 sm:py-6 px-4 sm:px-6 min-h-screen">
-      <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-4 sm:p-6">
+    <div className="p-3 sm:p-6 min-h-screen m-2 sm:m-4">
+      <div className="w-full max-w-3xl mx-auto my-auto bg-white rounded-2xl shadow-md p-4 sm:p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Профиль</h2>
         </div>

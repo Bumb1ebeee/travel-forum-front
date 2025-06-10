@@ -29,9 +29,7 @@ export default function DashboardPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8">
         <AdminDashboard user={user} />
-      </div>
     </SidebarLayout>
   );
 }

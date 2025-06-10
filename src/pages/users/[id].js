@@ -7,6 +7,7 @@ import UserDiscussions from '@/components/user_page/UserDiscussions';
 import SubscriptionButton from '@/components/user_page/SubscriptionButton';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
 import ErrorMessage from '@/components/error/ErrorMessage';
+import MainLayout from "@/layouts/main.layout";
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -136,20 +137,22 @@ export default function UserProfilePage() {
   const isOwnProfile = currentUserId && user.id === currentUserId;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="bg-white rounded-xl shadow-md p-6 transition-all hover:shadow-lg">
-          <UserProfile user={user} />
-          {!isOwnProfile && (
-            <SubscriptionButton
-              isSubscribed={isSubscribed}
-              handleSubscription={handleSubscription}
-            />
-          )}
+    <MainLayout>
+      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="bg-white rounded-xl shadow-md p-6 transition-all hover:shadow-lg">
+            <UserProfile user={user}/>
+            {!isOwnProfile && (
+              <SubscriptionButton
+                isSubscribed={isSubscribed}
+                handleSubscription={handleSubscription}
+              />
+            )}
+          </div>
+          <UserDiscussions discussions={discussions}/>
+          {error && <ErrorMessage message={error}/>}
         </div>
-        <UserDiscussions discussions={discussions} />
-        {error && <ErrorMessage message={error} />}
       </div>
-    </div>
+    </MainLayout>
   );
 }

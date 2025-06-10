@@ -41,36 +41,33 @@ export default function ReportsPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Жалобы</h1>
-
-        <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`
+      <div className="mt-2 p-3">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Жалобы</h1>
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
                     py-4 px-1 border-b-2 font-medium text-sm
                     ${
-                      activeTab === tab.id
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }
                   `}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <ReportsContent type={activeTab} user={user} />
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
+
+      <div className="mt-3 sm:mt-6">
+        <ReportsContent type={activeTab} user={user} />
+        </div>
     </SidebarLayout>
   );
 }
