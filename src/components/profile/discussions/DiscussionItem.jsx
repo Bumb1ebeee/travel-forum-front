@@ -1,55 +1,80 @@
 'use client';
-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import parse from 'html-react-parser';
 import axios from 'axios';
 import config from '@/pages/api/config';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from './DiscussionItem.module.css';
+import { toast } from 'react-toastify';
 
-const DiscussionItem = ({ discussion, user, openEditModal }) => {
+const DiscussionItem = ({ discussion, user, type, openEditModal }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [error, setError] = useState('');
   const [ymapsLoaded, setYmapsLoaded] = useState(false);
+  const [mediaItems, setMediaItems] = useState(discussion.media || []);
+  const mapRef = useRef(null);
   const router = useRouter();
-  const menuRef = useRef(null);
-  const mapRefs = useRef({});
 
-  // Ограничиваем описание до 100 символов для краткого отображения
-  const shortDescription = discussion.description
-    ? parse(
-      discussion.description.length > 100
-        ? discussion.description.slice(0, 100) + '...'
-        : discussion.description
-    )
-    : '';
+  const checkUrlValidity = async (url) => {
+    try {
+      const response = await axios.head(url, { timeout: 5000 });
+      return response.status === 200;
+    } catch (err) {
+      return false;
+    }
+  };
 
-  // Закрытие меню при клике вне его
+  const refreshMediaUrl = async (mediaId, urlKey) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(
+        `${config.apiUrl}/media/${mediaId}/refresh`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const newUrl = response.data.url;
+      setMediaItems((prev) =>
+        prev.map((item) =>
+          item.id === String(mediaId)
+            ? {
+              ...item,
+              content: { ...item.content, [urlKey]: newUrl },
+            }
+            : item
+        )
+      );
+      toast.success('Ссылка обновлена');
+      return newUrl;
+    } catch (err) {
+      console.error('Не удалось обновить ссылку:', err.message);
+      toast.error('Не удалось обновить ссылку');
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (!isModalOpen || ymapsLoaded) return;
 
-  // Загрузка Yandex Maps API для модального окна
-  useEffect(() => {
-    if (isModalOpen && !ymapsLoaded && discussion.media?.some((item) => item.type === 'map')) {
+    if (window.ymaps) {
+      setYmapsLoaded(true);
+      initAllMaps();
+    } else {
       const script = document.createElement('script');
-      script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=b6a3646e-c364-4407-b0b6-05e469ce3812';
+      script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=ваш_ключ';
       script.async = true;
       script.onload = () => {
         window.ymaps.ready(() => {
           setYmapsLoaded(true);
+          initAllMaps();
         });
       };
       script.onerror = () => {
-        setError('Не удалось загрузить Yandex Maps API');
+        console.error('Не удалось загрузить Yandex Maps API');
+        setError('Не удалось загрузить карту');
       };
       document.body.appendChild(script);
 
@@ -57,69 +82,133 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
         document.body.removeChild(script);
       };
     }
-  }, [isModalOpen, ymapsLoaded]);
+  }, [isModalOpen]);
 
-  // Инициализация карт в модальном окне
-  const initMap = useCallback((mediaId, mapPoints) => {
-    if (!window.ymaps || !mapRefs.current[mediaId]) return;
-
-    const map = new window.ymaps.Map(
-      mapRefs.current[mediaId],
-      {
-        center: mapPoints.length > 0 ? [mapPoints[0].lat, mapPoints[0].lng] : [55.7558, 37.6173],
-        zoom: 10,
-        controls: ['zoomControl'],
-      },
-      {
-        suppressMapOpenBlock: true,
+  const initAllMaps = () => {
+    mediaItems.forEach((item) => {
+      if (item.type === 'map' && item.content?.map_points?.length > 0) {
+        initMap(item.id, item.content.map_points);
       }
-    );
+    });
+  };
 
-    mapPoints.forEach((point) => {
-      const placemark = new window.ymaps.Placemark(
-        [point.lat, point.lng],
-        {},
-        { preset: 'islands#redDotIcon' }
-      );
-      map.geoObjects.add(placemark);
+  const initMap = (id, points) => {
+    const mapContainer = document.getElementById(`map-${id}`);
+    if (!mapContainer || !window.ymaps) return;
+
+    const map = new window.ymaps.Map(mapContainer, {
+      center: [points[0].lat, points[0].lng],
+      zoom: 10,
     });
 
-    if (mapPoints.length > 0) {
+    points.forEach((point) => {
+      map.geoObjects.add(new window.ymaps.Placemark([point.lat, point.lng]));
+    });
+
+    if (points.length > 1) {
       map.setBounds(
-        mapPoints.reduce(
-          (bounds, point) => [
-            [Math.min(bounds[0][0], point.lat), Math.min(bounds[0][1], point.lng)],
-            [Math.max(bounds[1][0], point.lat), Math.max(bounds[1][1], point.lng)],
+        points.reduce(
+          (bounds, p) => [
+            [Math.min(bounds[0][0], p.lat), Math.min(bounds[0][1], p.lng)],
+            [Math.max(bounds[1][0], p.lat), Math.max(bounds[1][1], p.lng)],
           ],
-          [
-            [mapPoints[0].lat, mapPoints[0].lng],
-            [mapPoints[0].lat, mapPoints[0].lng],
-          ]
+          [[points[0].lat, points[0].lng], [points[0].lat, points[0].lng]]
         ),
         { checkZoomRange: true }
       );
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    if (ymapsLoaded && isModalOpen) {
-      discussion.media?.forEach((item) => {
-        if (item.type === 'map' && item.content?.map_points) {
-          initMap(item.id, item.content.map_points);
+  const renderMediaItem = (item, isPreview = false) => {
+    console.log('Рендерим медиа:', {
+      id: item.id,
+      type: item.type,
+      content: item.content,
+    });
+
+    const urlKey = item.type === 'image' ? 'image_url' : item.type === 'video' ? 'video_url' : 'music_url';
+    const url = item.content?.[urlKey];
+
+    const handleMediaError = async () => {
+      if (url && item.type !== 'text' && item.type !== 'map') {
+        const isValid = await checkUrlValidity(url);
+        if (!isValid) {
+          const newUrl = await refreshMediaUrl(item.id, urlKey);
+          return newUrl;
         }
-      });
+      }
+    };
+
+    switch (item.type || item.content_type) {
+      case 'image':
+        return (
+          <img
+            src={`${url}&disposition=inline`}
+            alt="Медиа"
+            onError={handleMediaError}
+            className={isPreview ? styles.mediaImagePreview : styles.mediaImage}
+          />
+        );
+
+      case 'video':
+        return (
+          <video
+            controls
+            className={isPreview ? styles.mediaVideoPreview : styles.mediaVideo}
+            onError={handleMediaError}
+          >
+            <source src={`${url}&disposition=inline`} type='video/mp4' />
+            Ваш браузер не поддерживает видео.
+          </video>
+        );
+
+      case 'music':
+        return (
+          <audio
+            controls
+            className={styles.mediaAudio}
+            src={`${url}&disposition=inline`}
+            onError={handleMediaError}
+          >
+            Ваш браузер не поддерживает аудио.
+          </audio>
+        );
+
+      case 'text':
+        return (
+          <p className={styles.mediaText}>
+            {parse(item.content?.text_content || 'Нет текста')}
+          </p>
+        );
+
+      case 'map':
+        return (
+          <div className={styles.mediaMap} key={`map-container-${item.id}`}>
+            <p>Карта ({item.content?.map_points?.length || 0} точек)</p>
+            <div
+              id={`map-${item.id}`}
+              ref={mapRef}
+              style={{ width: '100%', height: isPreview ? '150px' : '400px' }}
+            ></div>
+          </div>
+        );
+
+      default:
+        return <p>Неизвестный тип медиа</p>;
     }
-  }, [ymapsLoaded, isModalOpen, discussion.media, initMap]);
+  };
 
   const handleDelete = async () => {
-    if (!confirm(`Вы уверены, что хотите удалить ${discussion.is_draft ? 'черновик' : 'обсуждение'}?`)) return;
+    if (
+      !confirm(
+        `Вы уверены, что хотите удалить ${discussion.is_draft ? 'черновик' : 'публикацию'}?`
+      )
+    )
+      return;
 
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Требуется авторизация');
-        return;
-      }
+      if (!token) throw new Error('Требуется авторизация');
 
       await axios.delete(`${config.apiUrl}/discussions/${discussion.id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -127,28 +216,18 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
 
       setError('');
       router.refresh();
-      alert(discussion.is_draft ? 'Черновик удалён' : 'Обсуждение удалено');
+      toast.success(discussion.is_draft ? 'Черновик удалён' : 'Публикация удалена');
     } catch (err) {
-      console.error('Ошибка удаления:', err.response?.data || err.message);
-      if (err.response?.status === 401) {
-        setError('Сессия истекла. Пожалуйста, войдите снова');
-        localStorage.removeItem('token');
-        router.push('/login');
-      } else if (err.response?.status === 404) {
-        setError('Обсуждение или черновик не найден');
-      } else {
-        setError('Ошибка удаления: ' + (err.response?.data?.message || err.message));
-      }
+      console.error('Ошибка удаления:', err.message);
+      setError('Не удалось удалить публикацию');
+      toast.error('Не удалось удалить публикацию');
     }
   };
 
   const handlePublish = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Требуется авторизация');
-        return;
-      }
+      if (!token) throw new Error('Требуется авторизация');
 
       await axios.put(
         `${config.apiUrl}/discussions/${discussion.id}/publish`,
@@ -156,28 +235,19 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
           title: discussion.title,
           category_id: discussion.category_id,
           description: discussion.description || '',
-          map: {
-            start: discussion.map?.start || '',
-            end: discussion.map?.end || '',
-          },
+          map: discussion.map || [],
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000,
+        }
       );
 
-      setError('');
+      toast.success('Публикация опубликована');
       router.refresh();
-      alert('Обсуждение опубликовано');
     } catch (err) {
       console.error('Ошибка публикации:', err.response?.data || err.message);
-      if (err.response?.status === 401) {
-        setError('Сессия истекла. Пожалуйста, войдите снова');
-        localStorage.removeItem('token');
-        router.push('/login');
-      } else if (err.response?.status === 422) {
-        setError('Ошибка валидации: ' + Object.values(err.response.data.errors).flat().join(', '));
-      } else {
-        setError('Ошибка публикации: ' + (err.response?.data?.message || err.message));
-      }
+      toast.error(err.response?.data?.message || 'Ошибка публикации');
     }
   };
 
@@ -186,101 +256,23 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
 
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Требуется авторизация');
-        return;
-      }
+      if (!token) throw new Error('Требуется авторизация');
 
-      await axios.put(
+      await axios.post(
         `${config.apiUrl}/discussions/${discussion.id}/unpublish`,
+        {},
         {
-          title: discussion.title,
-          category_id: discussion.category_id,
-          description: discussion.description || '',
-          map: {
-            start: discussion.map?.start || '',
-            end: discussion.map?.end || '',
-          },
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       setError('');
       router.refresh();
-      alert('Обсуждение перемещено в черновики');
+      toast.success('Обсуждение снято с публикации');
     } catch (err) {
-      console.error('Ошибка снятия с публикации:', err.response?.data || err.message);
-      if (err.response?.status === 401) {
-        setError('Сессия истекла. Пожалуйста, войдите снова');
-        localStorage.removeItem('token');
-        router.push('/login');
-      } else {
-        setError('Ошибка снятия с публикации: ' + (err.response?.data?.message || err.message));
-      }
-    }
-  };
-
-  // Рендеринг медиа-элемента
-  const renderMediaItem = (item, isPreview = false) => {
-    switch (item.type) {
-      case 'text':
-        const text = item.content?.text_content;
-        return (
-          <p className={`${styles.mediaText} ${isPreview ? styles.mediaTextPreview : styles.mediaTextFull}`}>
-            {text
-              ? (isPreview && text.length > 50 ? text.slice(0, 50) + '...' : text)
-              : 'Текст отсутствует'}
-          </p>
-        );
-      case 'image':
-        return (
-          <img
-            src={item.content?.image_url || 'https://placehold.co/80x80'}
-            alt="Медиа"
-            className={isPreview ? styles.mediaImagePreview : styles.mediaImage}
-            onError={(e) => {
-              e.target.src = 'https://placehold.co/80x80';
-            }}
-          />
-        );
-      case 'video':
-        return (
-          <video
-            src={item.content?.video_url}
-            controls
-            className={isPreview ? styles.mediaVideoPreview : styles.mediaVideo}
-          />
-        );
-      case 'music':
-        return (
-          <audio
-            src={item.content?.music_url}
-            controls
-            className={isPreview ? styles.mediaAudioPreview : styles.mediaAudio}
-          />
-        );
-      case 'map':
-        if (isPreview && item.content?.map_points?.length > 0) {
-          const [point] = item.content.map_points;
-          const staticMapUrl = `https://static-maps.yandex.ru/1.x/?ll=${point.lng},${point.lat}&z=12&size=200,100&l=map&pt=${point.lng},${point.lat},pm2rdm`;
-          return (
-            <img
-              src={staticMapUrl}
-              alt="Превью карты"
-              className={styles.mediaMapPreview}
-            />
-          );
-        } else if (!isPreview) {
-          return (
-            <div
-              ref={(el) => (mapRefs.current[item.id] = el)}
-              className={styles.mediaMap}
-            />
-          );
-        }
-        return null;
-      default:
-        return null;
+      console.error('Ошибка снятия с публикации:', err.message);
+      setError('Не удалось снять обсуждение с публикации');
+      toast.error('Не удалось снять обсуждение с публикации');
     }
   };
 
@@ -290,28 +282,40 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
         className={styles.discussionContent}
         onClick={() => setIsModalOpen(true)}
       >
-        <h3 className={styles.title}>{discussion.title}</h3>
-        <p className={styles.category}>Категория: {discussion.category?.name || 'Не указана'}</p>
+        {type === 'published' ? (
+          <Link
+            href={`/discussions/${discussion.id}`}
+            className={styles.titleLink}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {discussion.title}
+          </Link>
+        ) : (
+          <h3 className={styles.title}>{discussion.title}</h3>
+        )}
+        <p className={styles.category}>
+          Категория: {discussion.category?.name || 'Не указана'}
+        </p>
+
         {discussion.map?.start && discussion.map?.end && (
           <p className={styles.route}>
             Маршрут: {discussion.map.start} → {discussion.map.end}
           </p>
         )}
+
         <p className={styles.status}>
           Статус: {discussion.is_draft ? 'Черновик' : 'Опубликовано'}
         </p>
-        {/* Превью медиа */}
-        {discussion.media?.length > 0 && (
+
+        {mediaItems?.length > 0 && (
           <div className={styles.mediaPreview}>
-            {discussion.media.slice(0, 2).map((item) => (
+            {mediaItems.slice(0, 2).map((item) => (
               <div key={item.id} className={styles.mediaItem}>
                 {renderMediaItem(item, true)}
               </div>
             ))}
-            {discussion.media.length > 2 && (
-              <p className={styles.mediaCount}>
-                +{discussion.media.length - 2}...
-              </p>
+            {mediaItems.length > 2 && (
+              <p className={styles.mediaCount}>+{mediaItems.length - 2}...</p>
             )}
           </div>
         )}
@@ -325,20 +329,18 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
               setIsMenuOpen(!isMenuOpen);
             }}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 6h.01M12 12h.01M12 18h.01"
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth='2'
+                d='M12 6h.01M12 12h.01M12 18h.01'
               />
             </svg>
           </button>
+
           {isMenuOpen && (
-            <div
-              ref={menuRef}
-              className={styles.menu}
-            >
+            <div className={styles.menu}>
               <button
                 onClick={() => {
                   openEditModal(discussion);
@@ -382,9 +384,9 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
           )}
         </div>
       )}
+
       {error && <p className={styles.error}>{error}</p>}
 
-      {/* Модальное окно для полного просмотра */}
       {isModalOpen && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
@@ -395,27 +397,30 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
               ✕
             </button>
             <h3 className={styles.title}>{discussion.title}</h3>
-            <p className={styles.category}>Категория: {discussion.category?.name || 'Не указана'}</p>
+            <p className={styles.category}>
+              Категория: {discussion.category?.name || 'Не указана'}
+            </p>
+
             {discussion.map?.start && discussion.map?.end && (
               <p className={styles.route}>
                 Маршрут: {discussion.map.start} → {discussion.map.end}
               </p>
             )}
+
             <p className={styles.status}>
               Статус: {discussion.is_draft ? 'Черновик' : 'Опубликовано'}
             </p>
-            {/* Полное отображение медиа */}
-            {discussion.media?.length > 0 && (
+
+            {mediaItems?.length > 0 && (
               <div className={`${styles.mediaPreview} ${styles.mediaPreviewWrap}`}>
-                <div className={styles.mediaItem}>
-                  {discussion.media.map((item) => (
-                    <div key={item.id}>
-                      {renderMediaItem(item, false)}
-                    </div>
-                  ))}
-                </div>
+                {mediaItems.map((item) => (
+                  <div key={item.id} className={styles.mediaItem}>
+                    {renderMediaItem(item, false)}
+                  </div>
+                ))}
               </div>
             )}
+
             {user && user.id === discussion.user_id && (
               <button
                 onClick={() => {
@@ -427,6 +432,7 @@ const DiscussionItem = ({ discussion, user, openEditModal }) => {
                 Редактировать
               </button>
             )}
+
             {error && <p className={styles.error}>{error}</p>}
           </div>
         </div>

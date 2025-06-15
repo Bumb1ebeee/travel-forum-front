@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { MapIcon, DocumentTextIcon, PhotoIcon, VideoCameraIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
@@ -22,10 +21,10 @@ const MediaEditor = ({
                        onMapChange,
                        onMediaChange,
                        initialMapPoints,
-                       initialMediaItems,
+                       mediaItems,
+                       setMediaItems,
                        isEdit = false,
                      }) => {
-  const [mediaItems, setMediaItems] = useState(initialMediaItems || []);
   const [selectedType, setSelectedType] = useState('');
   const [textContent, setTextContent] = useState('');
   const [file, setFile] = useState(null);
@@ -42,8 +41,9 @@ const MediaEditor = ({
     (items) => {
       console.log('Вызов onMediaChange:', items);
       onMediaChange(items);
+      setMediaItems(items);
     },
-    [onMediaChange]
+    [onMediaChange, setMediaItems]
   );
 
   // Функция для обновления mediaItems с новыми точками карты
@@ -73,152 +73,52 @@ const MediaEditor = ({
         return updatedMediaItems;
       });
     },
-    [memoizedOnMediaChange, onMapChange]
+    [memoizedOnMediaChange, onMapChange, setMediaItems]
   );
-
-  // Инициализация редактора
-  useEffect(() => {
-    console.log('MediaEditor mounted:', { mediableId, mediableType, isEdit });
-    if (onEditorReady) {
-      const editor = {
-        chain: () => ({
-          focus: () => ({
-            insertContent: (content) => ({ run: () => console.log('Вставка контента:', content) }),
-            deleteNode: (node) => ({ run: () => console.log('Удаление узла:', node) }),
-          }),
-        }),
-        getHTML: () => content || '',
-      };
-      console.log('Инициализация редактора');
-      onEditorReady(editor);
-    }
-  }, [onEditorReady, content]);
-
-  // Синхронизация mediaItems с initialMediaItems
-  useEffect(() => {
-    console.log('Синхронизация initialMediaItems:', initialMediaItems);
-    setMediaItems(initialMediaItems || []);
-  }, [initialMediaItems]);
-
-  // Загрузка медиа из API только при инициализации, если initialMediaItems пуст
-  useEffect(() => {
-    const fetchMedia = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('Токен авторизации отсутствует');
-        }
-        const mediableType = 'App\\Models\\Discussion';
-        console.log('Отправка запроса на загрузку медиа:', {
-          url: `${config.apiUrl}/media?mediable_id=${mediableId}&mediable_type=${encodeURIComponent(mediableType)}`,
-          token: token.slice(0, 10) + '...',
-        });
-        const response = await axios.get(
-          `${config.apiUrl}/media`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            params: {
-              mediable_id: mediableId,
-              mediable_type: mediableType,
-            },
-          }
-        );
-        console.log('Полученные медиа:', JSON.stringify(response.data.media, null, 2));
-        if (!response.data.media || response.data.media.length === 0) {
-          console.warn('Медиа отсутствуют в ответе API');
-          setMediaItems([]);
-          memoizedOnMediaChange([]);
-        } else {
-          const fetchedMediaItems = response.data.media.map((item) => ({
-            id: String(item.id),
-            content_type: item.type,
-            type: item.type,
-            content: {
-              file_id: item.content?.file_id ?? item.id,
-              content_type: item.content?.content_type ?? item.type,
-              order: item.content?.order ?? 0,
-              image_url: item.content?.image_url ?? (item.type === 'image' ? 'https://placehold.co/80x80' : null),
-              video_url: item.content?.video_url ?? null,
-              music_url: item.content?.music_url ?? null,
-              text_content: item.content?.text_content ?? (item.type === 'text' ? '' : null),
-              map_points: item.content?.map_points ?? (item.type === 'map' ? [] : null),
-            },
-            file_type: item.file_type,
-            order: item.order ?? 0,
-          }));
-          setMediaItems(fetchedMediaItems);
-          memoizedOnMediaChange(fetchedMediaItems);
-        }
-      } catch (err) {
-        console.error('Ошибка загрузки медиа:', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-        });
-        toast.error(err.response?.data?.message || 'Не удалось загрузить медиа');
-      }
-    };
-
-    if (mediableId && isEdit && (!initialMediaItems || initialMediaItems.length === 0)) {
-      fetchMedia();
-    }
-  }, [mediableId, isEdit, initialMediaItems, memoizedOnMediaChange]);
 
   // Инициализация карты
   const initMap = useCallback(() => {
     if (!ymapsRef.current || !mapRef.current) return;
 
-    // Уничтожаем предыдущую карту, если она существует
     if (mapRef.current.mapInstance) {
       mapRef.current.mapInstance.destroy();
       mapRef.current.mapInstance = null;
     }
 
-    const map = new ymapsRef.current.Map(
-      mapRef.current,
-      {
-        center: mapPoints.length > 0
-          ? [mapPoints[0].lat, mapPoints[0].lng]
-          : [55.7558, 37.6173],
-        zoom: 10,
-        controls: ['zoomControl'],
-      },
-      {
-        suppressMapOpenBlock: true,
-      }
-    );
+    const map = new ymapsRef.current.Map(mapRef.current, {
+      center: mapPoints.length > 0
+        ? [mapPoints[0].lat, mapPoints[0].lng]
+        : [55.7558, 37.6173],
+      zoom: 10,
+      controls: ['zoomControl'],
+    }, {
+      suppressMapOpenBlock: true,
+    });
+
     mapRef.current.mapInstance = map;
 
-    // Храним placemarks для управления
     const placemarks = mapPoints.map((point) => {
-      const placemark = new ymapsRef.current.Placemark(
-        [point.lat, point.lng],
-        {},
-        { preset: 'islands#redDotIcon' }
-      );
+      const placemark = new ymapsRef.current.Placemark([point.lat, point.lng], {}, {
+        preset: 'islands#redDotIcon',
+      });
       map.geoObjects.add(placemark);
       return placemark;
     });
 
-    // Обработчик клика для добавления точки
     map.events.add('click', (e) => {
       const coords = e.get('coords');
       const newPoint = { lat: coords[0], lng: coords[1] };
       setMapPoints((prev) => {
         const updatedPoints = [...prev, newPoint];
-        const placemark = new ymapsRef.current.Placemark(
-          coords,
-          {},
-          { preset: 'islands#redDotIcon' }
-        );
+        const placemark = new ymapsRef.current.Placemark(coords, {}, {
+          preset: 'islands#redDotIcon',
+        });
         map.geoObjects.add(placemark);
-        // Обновляем mediaItems
         updateMediaItemsWithMapPoints(updatedPoints);
         return updatedPoints;
       });
     });
 
-    // Устанавливаем границы, если есть точки
     if (mapPoints.length > 0) {
       map.setBounds(
         mapPoints.reduce(
@@ -226,10 +126,7 @@ const MediaEditor = ({
             [Math.min(bounds[0][0], point.lat), Math.min(bounds[0][1], point.lng)],
             [Math.max(bounds[1][0], point.lat), Math.max(bounds[1][1], point.lng)],
           ],
-          [
-            [mapPoints[0].lat, mapPoints[0].lng],
-            [mapPoints[0].lat, mapPoints[0].lng],
-          ]
+          [[mapPoints[0].lat, mapPoints[0].lng], [mapPoints[0].lat, mapPoints[0].lng]]
         ),
         { checkZoomRange: true }
       );
@@ -251,7 +148,6 @@ const MediaEditor = ({
         toast.error('Не удалось загрузить Yandex Maps API');
       };
       document.body.appendChild(script);
-
       return () => {
         document.body.removeChild(script);
       };
@@ -259,7 +155,6 @@ const MediaEditor = ({
       ymapsRef.current.ready(initMap);
     }
 
-    // Очистка карты при закрытии модального окна
     return () => {
       if (mapRef.current && mapRef.current.mapInstance) {
         mapRef.current.mapInstance.destroy();
@@ -272,15 +167,12 @@ const MediaEditor = ({
   const handleRemovePoint = (index) => {
     setMapPoints((prev) => {
       const updatedPoints = prev.filter((_, i) => i !== index);
-      // Обновляем карту
       if (mapRef.current.mapInstance) {
         mapRef.current.mapInstance.geoObjects.removeAll();
         updatedPoints.forEach((point) => {
-          const placemark = new ymapsRef.current.Placemark(
-            [point.lat, point.lng],
-            {},
-            { preset: 'islands#redDotIcon' }
-          );
+          const placemark = new ymapsRef.current.Placemark([point.lat, point.lng], {}, {
+            preset: 'islands#redDotIcon',
+          });
           mapRef.current.mapInstance.geoObjects.add(placemark);
         });
         if (updatedPoints.length > 0) {
@@ -290,10 +182,7 @@ const MediaEditor = ({
                 [Math.min(bounds[0][0], point.lat), Math.min(bounds[0][1], point.lng)],
                 [Math.max(bounds[1][0], point.lat), Math.max(bounds[1][1], point.lng)],
               ],
-              [
-                [updatedPoints[0].lat, updatedPoints[0].lng],
-                [updatedPoints[0].lat, updatedPoints[0].lng],
-              ]
+              [[updatedPoints[0].lat, updatedPoints[0].lng], [updatedPoints[0].lat, updatedPoints[0].lng]]
             ),
             { checkZoomRange: true }
           );
@@ -301,118 +190,128 @@ const MediaEditor = ({
           mapRef.current.mapInstance.setCenter([55.7558, 37.6173], 10);
         }
       }
-      // Обновляем mediaItems
       updateMediaItemsWithMapPoints(updatedPoints);
       return updatedPoints;
     });
   };
 
   const handleSelectType = (type) => {
-    console.log('Выбор типа медиа:', type);
     setSelectedType(type);
   };
 
   const handleTextChange = (e) => {
-    const value = e.target.value;
-    console.log('Изменение текста:', value);
-    setTextContent(value);
+    setTextContent(e.target.value);
+  };
+
+  const uploadToYandexDisk = async (file) => {
+    const yandexToken = 'y0__xDM36utBBjblgMg2umTwBPo4gx7IP25mE7cLmmXfep29ytG8w'; // Замените на свой
+    const fileName = `${Date.now()}-${uuidv4()}-${file.name}`;
+
+    try {
+      const { data } = await axios.get(
+        'https://cloud-api.yandex.net/v1/disk/resources/upload',
+        {
+          params: {
+            path: `/media/${fileName}`,
+            overwrite: true,
+          },
+          headers: {
+            Authorization: `OAuth ${yandexToken}`,
+          },
+        }
+      );
+
+      await axios.put(data.href, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      await axios.put(
+        'https://cloud-api.yandex.net/v1/disk/resources/publish',
+        null,
+        {
+          params: { path: `/media/${fileName}` },
+          headers: {
+            Authorization: `OAuth ${yandexToken}`,
+          },
+        }
+      );
+
+      const publicLinkResponse = await axios.get(
+        'https://cloud-api.yandex.net/v1/disk/resources',
+        {
+          params: { path: `/media/${fileName}` },
+          headers: {
+            Authorization: `OAuth ${yandexToken}`,
+          },
+        }
+      );
+
+      const publicUrl = publicLinkResponse.data.public_url;
+      return publicUrl;
+
+    } catch (error) {
+      console.error('Ошибка загрузки на Яндекс.Диск:', error.message);
+      if (error.response) {
+        console.error('Ответ сервера:', error.response.status, error.response.data);
+      }
+      throw new Error('Не удалось загрузить файл на Яндекс.Диск');
+    }
   };
 
   const handleAddMedia = async () => {
     try {
-      if (!mediableId) {
-        throw new Error('mediableId не определен');
-      }
-      const mediableType = 'App\\Models\\Discussion'; // Фиксируем значение
-      console.log('Отправка mediableType:', mediableType); // Логируем для отладки
-
-      if (selectedType === 'text' && !textContent.trim()) {
-        throw new Error('Текст не может быть пустым');
-      }
-      if (['image', 'video', 'music'].includes(selectedType) && !file) {
-        throw new Error('Файл не выбран');
-      }
-      if (selectedType === 'map' && !mapPoints.length) {
-        throw new Error('Не выбраны точки на карте');
-      }
+      if (!mediableId) throw new Error('mediableId не определен');
 
       const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Токен авторизации отсутствует');
-      }
+      if (!token) throw new Error('Токен авторизации отсутствует');
 
       let response;
-      console.log('Отправка запроса для медиа:', {
-        selectedType,
-        mediableId,
-        mediableType,
-        mapPoints: selectedType === 'map' ? mapPoints : undefined,
-      });
 
       if (selectedType === 'text') {
-        response = await axios.post(
-          `${config.apiUrl}/media`,
-          {
-            mediable_id: mediableId,
-            mediable_type: mediableType,
-            type: 'text',
-            text_content: textContent,
-            file_type: null,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        response = await axios.post(`${config.apiUrl}/media`, {
+          mediable_id: mediableId,
+          mediable_type: 'App\\Models\\Discussion',
+          type: 'text',
+          text_content: textContent,
+          file_type: null,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       } else if (['image', 'video', 'music'].includes(selectedType)) {
-        const formData = new FormData();
-        formData.append('mediable_id', mediableId);
-        formData.append('mediable_type', mediableType);
-        formData.append('type', selectedType);
-        formData.append('file', file);
-        formData.append('file_type', selectedType);
+        const publicUrl = await uploadToYandexDisk(file);
 
-        response = await axios.post(
-          `${config.apiUrl}/media`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          }
-        );
+        response = await axios.post(`${config.apiUrl}/media`, {
+          mediable_id: mediableId,
+          mediable_type: 'App\\Models\\Discussion',
+          type: selectedType,
+          content: {
+            ...(selectedType === 'image' && { image_url: publicUrl }),
+            ...(selectedType === 'video' && { video_url: publicUrl }),
+            ...(selectedType === 'music' && { music_url: publicUrl }),
+          },
+          file_type: selectedType,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       } else if (selectedType === 'map') {
         const payload = {
           mediable_id: mediableId,
-          mediable_type: mediableType,
+          mediable_type: 'App\\Models\\Discussion',
           type: 'map',
-          map_points: mapPoints,
+          content: { map_points: mapPoints },
           file_type: null,
         };
-        console.log('Payload для карты:', payload);
 
         if (editingMediaId) {
-          response = await axios.patch(
-            `${config.apiUrl}/media/${editingMediaId}`,
-            {
-              mediable_id: mediableId,
-              mediable_type: mediableType, // Добавляем mediable_type
-              map_points: mapPoints,
-              type: 'map',
-              file_type: null,
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
+          response = await axios.patch(`${config.apiUrl}/media/${editingMediaId}`, payload, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
         } else {
-          response = await axios.post(
-            `${config.apiUrl}/media`,
-            payload,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
+          response = await axios.post(`${config.apiUrl}/media`, payload, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
         }
       }
 
@@ -425,26 +324,23 @@ const MediaEditor = ({
         order: mediaItems.length,
       };
 
-      console.log('Ответ /api/media:', response.data);
       const updatedMediaItems = editingMediaId
         ? mediaItems.map((item) =>
           item.id === editingMediaId ? { ...item, content: response.data.media.content } : item
         )
         : [...mediaItems, newMedia];
+
       setMediaItems(updatedMediaItems);
       memoizedOnMediaChange(updatedMediaItems);
+
       setTextContent('');
       setFile(null);
       setSelectedType('');
       setMapPoints([]);
       setEditingMediaId(null);
-      toast.success(editingMediaId ? 'Карта обновлена' : 'Медиа добавлено');
+      toast.success(editingMediaId ? 'Медиа обновлено' : 'Медиа добавлено');
     } catch (err) {
-      console.error('Ошибка добавления медиа:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-      });
+      console.error('Ошибка добавления медиа:', err.message);
       setError(err.response?.data?.message || 'Ошибка добавления медиа');
       toast.error(err.response?.data?.message || 'Ошибка добавления медиа');
     }
@@ -452,28 +348,16 @@ const MediaEditor = ({
 
   const handleEditMedia = async (mediaId) => {
     try {
-      if (!editingTextContent.trim()) {
-        throw new Error('Текст не может быть пустым');
-      }
+      if (!editingTextContent.trim()) throw new Error('Текст не может быть пустым');
 
       const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Требуется авторизация');
-      }
+      if (!token) throw new Error('Требуется авторизация');
 
-      console.log('Обновление медиа:', { mediaId, text_content: editingTextContent });
-
-      const response = await axios.patch(
-        `${config.apiUrl}/media/${mediaId}`,
-        {
-          text_content: editingTextContent,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      console.log('Ответ /api/media PATCH:', response.data);
+      const response = await axios.patch(`${config.apiUrl}/media/${mediaId}`, {
+        text_content: editingTextContent,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const updatedMediaItems = mediaItems.map((item) =>
         item.id === mediaId
@@ -493,11 +377,7 @@ const MediaEditor = ({
       setEditingTextContent('');
       toast.success('Текст обновлён');
     } catch (err) {
-      console.error('Ошибка обновления медиа:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-      });
+      console.error('Ошибка обновления медиа:', err.message);
       setError(err.response?.data?.message || 'Ошибка обновления текста');
       toast.error(err.response?.data?.message || 'Ошибка обновления текста');
     }
@@ -511,6 +391,106 @@ const MediaEditor = ({
   const cancelEditing = () => {
     setEditingMediaId(null);
     setEditingTextContent('');
+  };
+
+  const renderMediaItem = (media, isPreview = false) => {
+    console.log('MediaEditor - рендерим медиа:', {
+      id: media.id,
+      type: media.type,
+      content_type: media.content_type,
+      content: media.content,
+    });
+
+    let effectiveType = media.content_type || media.type || 'unknown';
+    if (media.content?.image_url && media.content.image_url !== '') {
+      effectiveType = 'image';
+    } else if (media.content?.video_url && media.content.video_url !== '') {
+      effectiveType = 'video';
+    } else if (media.content?.music_url && media.content.music_url !== '') {
+      effectiveType = 'music';
+    } else if (media.content?.map_points && media.content.map_points.length > 0) {
+      effectiveType = 'map';
+    } else if (media.content?.text_content && media.content.text_content !== '') {
+      effectiveType = 'text';
+    }
+
+    console.log('MediaEditor - эффективный тип медиа:', effectiveType);
+
+    switch (effectiveType) {
+      case 'image':
+        return (
+          <div>
+            <img
+              src={media.content?.image_url || 'https://placehold.co/80x80'}
+              alt="Превью"
+              className={isPreview ? 'w-20 h-20 object-cover rounded' : 'w-full max-w-xs object-cover rounded'}
+              onError={(e) => {
+                e.target.src = 'https://placehold.co/80x80';
+                console.error('Ошибка загрузки изображения:', media.id, media.content?.image_url);
+                toast.error(`Не удалось загрузить изображение ${media.id}`);
+              }}
+            />
+            {!media.content?.image_url && (
+              <p className="text-red-500 text-sm mt-1">Ошибка: URL изображения отсутствует</p>
+            )}
+          </div>
+        );
+
+      case 'video':
+        return (
+          <div>
+            <video
+              src={media.content?.video_url || 'https://placehold.co/80x80'}
+              controls
+              className={isPreview ? 'w-20 h-20 object-cover rounded' : 'w-full max-w-xs object-cover rounded'}
+              onError={(e) => {
+                console.error('Ошибка воспроизведения видео:', media.id, media.content?.video_url);
+                e.target.poster = 'https://placehold.co/80x80';
+                toast.error(`Не удалось загрузить видео ${media.id}`);
+              }}
+            >
+              <source src={media.content?.video_url} type="video/mp4" />
+              Ваш браузер не поддерживает видео.
+            </video>
+            {!media.content?.video_url && (
+              <p className="text-red-500 text-sm mt-1">Ошибка: URL видео отсутствует</p>
+            )}
+          </div>
+        );
+
+      case 'music':
+        return (
+          <div>
+            <audio
+              controls
+              className="w-full"
+              src={media.content?.music_url || 'https://placehold.co/80x80'}
+              onError={() => {
+                console.error('Ошибка воспроизведения аудио:', media.id, media.content?.music_url);
+                toast.error(`Не удалось загрузить аудио ${media.id}`);
+              }}
+            >
+              Ваш браузер не поддерживает аудио.
+            </audio>
+            {!media.content?.music_url && (
+              <p className="text-red-500 text-sm mt-1">Ошибка: URL аудио отсутствует</p>
+            )}
+          </div>
+        );
+
+      case 'text':
+        return <p className="flex-1 truncate">{media.content?.text_content || 'Нет текста'}</p>;
+
+      case 'map':
+        return (
+          <div className="flex-1">
+            <p>Карта ({media.content?.map_points?.length || 0} точек)</p>
+          </div>
+        );
+
+      default:
+        return <p className="text-red-500">Неизвестный тип медиа: {effectiveType}</p>;
+    }
   };
 
   return (
@@ -638,10 +618,25 @@ const MediaEditor = ({
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Добавленные медиа</h3>
           {mediaItems.map((media) => {
-            console.log('Рендеринг медиа:', JSON.stringify(media, null, 2));
+            let effectiveType = media.content_type || media.type || 'unknown';
+            if (media.content?.image_url && media.content.image_url !== '') {
+              effectiveType = 'image';
+            } else if (media.content?.video_url && media.content.video_url !== '') {
+              effectiveType = 'video';
+            } else if (media.content?.music_url && media.content.music_url !== '') {
+              effectiveType = 'music';
+            } else if (media.content?.map_points && media.content.map_points.length > 0) {
+              effectiveType = 'map';
+            } else if (media.content?.text_content && media.content.text_content !== '') {
+              effectiveType = 'text';
+            }
+
+            console.log('MediaEditor - рендеринг медиа:', JSON.stringify(media, null, 2));
+            console.log('MediaEditor - эффективный тип медиа:', effectiveType);
+
             return (
               <div key={media.id} className="p-2 border rounded-lg">
-                {editingMediaId === media.id && (media.content_type === 'text' || media.type === 'text') ? (
+                {editingMediaId === media.id && effectiveType === 'text' ? (
                   <div className="space-y-2">
                     <textarea
                       value={editingTextContent}
@@ -671,60 +666,42 @@ const MediaEditor = ({
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    {(media.content_type === 'text' || media.type === 'text') && (
-                      <p className="flex-1 truncate">
-                        {media.content?.text_content || 'Нет текста'}
-                      </p>
-                    )}
-                    {(media.content_type === 'image' || media.type === 'image') && (
-                      <img
-                        src={media.content?.image_url || 'https://placehold.co/80x80'}
-                        alt="Превью"
-                        className="w-20 h-20 object-cover rounded"
-                        onError={(e) => {
-                          e.target.src = 'https://placehold.co/80x80';
-                          console.error('Ошибка загрузки изображения:', media.id);
-                        }}
-                      />
-                    )}
-                    {(media.content_type === 'map' || media.type === 'map') && (
-                      <div className="flex-1">
-                        <p>Карта ({media.content?.map_points?.length || 0} точек)</p>
-                      </div>
-                    )}
-                    {(media.content_type === 'text' || media.type === 'text') && (
+                    {renderMediaItem(media, true)}
+                    <div className="flex gap-2">
+                      {effectiveType === 'text' && (
+                        <button
+                          type="button"
+                          onClick={() => startEditing(media)}
+                          className="text-blue-500 hover:text-blue-700"
+                          disabled={submitting}
+                        >
+                          Редактировать
+                        </button>
+                      )}
+                      {effectiveType === 'map' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedType('map');
+                            setMapPoints(media.content?.map_points || []);
+                            setIsMapModalOpen(true);
+                            setEditingMediaId(media.id);
+                          }}
+                          className="text-blue-500 hover:text-blue-700"
+                          disabled={submitting}
+                        >
+                          Редактировать
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => startEditing(media)}
-                        className="text-blue-500 hover:text-blue-700"
+                        onClick={() => handleDeleteMedia(media.id)}
+                        className="text-red-500 hover:text-red-700"
                         disabled={submitting}
                       >
-                        Редактировать
+                        Удалить
                       </button>
-                    )}
-                    {(media.content_type === 'map' || media.type === 'map') && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedType('map');
-                          setMapPoints(media.content?.map_points || []);
-                          setIsMapModalOpen(true);
-                          setEditingMediaId(media.id);
-                        }}
-                        className="text-blue-500 hover:text-blue-700"
-                        disabled={submitting}
-                      >
-                        Редактировать
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteMedia(media.id, media.file_type)}
-                      className="text-red-500 hover:text-red-700"
-                      disabled={submitting}
-                    >
-                      Удалить
-                    </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -740,7 +717,8 @@ const MediaEditor = ({
             console.log('Закрытие модального окна карты, mapPoints:', mapPoints);
             setIsMapModalOpen(false);
             setSelectedType('');
-            // Не сбрасываем mapPoints, чтобы сохранить изменения
+            setMapPoints(initialMapPoints || []);
+            setEditingMediaId(null);
           }}
         >
           <div className="p-4">
@@ -777,8 +755,8 @@ const MediaEditor = ({
                 type="button"
                 onClick={() => {
                   console.log('Сохранение карты с точками:', mapPoints);
-                  setIsMapModalOpen(false);
                   handleAddMedia();
+                  setIsMapModalOpen(false);
                 }}
                 className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-all duration-200 disabled:bg-gray-400"
                 disabled={submitting || !mapPoints.length}
@@ -791,7 +769,8 @@ const MediaEditor = ({
                   console.log('Отмена карты, сброс точек');
                   setIsMapModalOpen(false);
                   setSelectedType('');
-                  // Не сбрасываем mapPoints
+                  setMapPoints(initialMapPoints || []);
+                  setEditingMediaId(null);
                 }}
                 className="bg-gray-200 text-gray-700 p-2 rounded-lg hover:bg-gray-300 transition-all duration-200"
               >
@@ -817,21 +796,18 @@ MediaEditor.propTypes = {
   onEditorReady: PropTypes.func,
   onMapChange: PropTypes.func,
   onMediaChange: PropTypes.func.isRequired,
-  initialMapPoints: PropTypes.arrayOf(
-    PropTypes.shape({
-      lat: PropTypes.number,
-      lng: PropTypes.number,
-    })
-  ),
-  initialMediaItems: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string,
-      content_type: PropTypes.string,
-      content: PropTypes.object,
-      file_type: PropTypes.string,
-      order: PropTypes.number,
-    })
-  ),
+  initialMapPoints: PropTypes.arrayOf(PropTypes.shape({
+    lat: PropTypes.number,
+    lng: PropTypes.number,
+  })),
+  mediaItems: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string,
+    content_type: PropTypes.string,
+    content: PropTypes.object,
+    file_type: PropTypes.string,
+    order: PropTypes.number,
+  })).isRequired,
+  setMediaItems: PropTypes.func.isRequired,
   isEdit: PropTypes.bool,
 };
 

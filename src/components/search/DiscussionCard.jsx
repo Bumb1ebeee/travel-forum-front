@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 const DiscussionCard = ({ discussion, onClick }) => (
   <li
@@ -14,7 +15,7 @@ const DiscussionCard = ({ discussion, onClick }) => (
         discussion.media.map((media) => (
           <div key={media.id}>
             {media.type === 'image' && (
-              <img
+              <Image
                 src={media.path}
                 alt="Discussion Image"
                 className="w-full h-48 object-cover rounded-lg"

@@ -5,7 +5,6 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   margin-bottom: 1.5rem;
   position: relative;
-  z-index: 0;
   transition: box-shadow 0.2s;
 }
 
@@ -37,6 +36,20 @@
   font-weight: 600;
   color: #111827;
   margin-bottom: 0.75rem;
+}
+
+.titleLink {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  display: inline-block;
+}
+
+.titleLink:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
 .category {

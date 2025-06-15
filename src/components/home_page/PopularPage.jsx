@@ -14,7 +14,7 @@ export default function PopularPage({ user }) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row p-1 gap-2 mx-auto max-w-7xl">
+    <div className="flex flex-col md:flex-row p-1 gap-2 mx-auto">
       <div className="md:w-64">
         <Sidebar
           onCategorySelect={handleCategorySelect}

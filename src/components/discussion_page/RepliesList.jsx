@@ -1,284 +1,316 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { HeartIcon, ArrowRightIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { HeartIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import parse from 'html-react-parser';
 import axios from 'axios';
 import OptionsMenu from '@/components/common/OptionsMenu';
 import config from '@/pages/api/config';
+import UserAvatar from "@/components/profile/profile/userAvatar";
 
 const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
-  const router = useRouter();
   const [likes, setLikes] = useState(reply.likes || 0);
   const [userReaction, setUserReaction] = useState(reply.userReaction || null);
   const [visibleChildrenCount, setVisibleChildrenCount] = useState(2);
   const [showChildren, setShowChildren] = useState(false);
+  const [mediaUrls, setMediaUrls] = useState({}); // Кэш для обновлённых ссылок
+  const [loadingMedia, setLoadingMedia] = useState({}); // Состояние загрузки
+  const [errorMedia, setErrorMedia] = useState({}); // Ошибки медиа
 
   const visualLevel = Math.min(level, 5);
   const indent = visualLevel * 20;
 
-  console.log(`Reply (level=${level}, visualLevel=${visualLevel}, indent=${indent}):`, {
-    id: reply.id,
-    parent_id: reply.parent_id,
-    userReaction: reply.userReaction,
-    children: reply.children?.length || 0,
-    content: reply.content,
-    media: reply.media,
-  });
+  // Нормализация ссылок Yandex.Disk
+  const normalizeYandexUrl = (url) => {
+    if (!url) return null;
+    if (url.includes('downloader.disk.yandex.ru')) {
+      console.warn('Обнаружена временная ссылка, требуется обновление:', url);
+      return null;
+    }
+    if (url.match(/^https:\/\/yadi\.sk\/[di]\//)) {
+      const separator = url.includes('?') ? '&' : '?';
+      if (!url.includes('disposition=inline')) {
+        console.log('Добавлен disposition=inline к URL:', url);
+        return `${url}&disposition=inline`;
+      }
+      return url;
+    }
+    return url;
+  };
 
   useEffect(() => {
     const fetchReaction = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          console.log('Токен отсутствует, пропускаем загрузку реакции');
-          return;
-        }
+        if (!token) return;
 
         const reactionResponse = await axios.get(
           `${config.apiUrl}/reactions?reactable_id=${reply.id}&reactable_type=App\\Models\\Reply`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
+
         setUserReaction(reactionResponse.data.reaction || null);
-        console.log('Reaction response:', reactionResponse.data);
+        setLikes(reactionResponse.data.likes || likes);
       } catch (error) {
-        console.error('Ошибка при загрузке реакции:', error.response?.data || error.message);
+        console.error('Ошибка при загрузке реакции:', error.message);
       }
     };
 
     fetchReaction();
-  }, [reply.id]);
+  }, [reply.id, likes]);
+
+  // Логируем структуру reply.media
+  useEffect(() => {
+    if (reply.media?.length > 0) {
+      console.log('Структура reply.media:', JSON.stringify(reply.media, null, 2));
+    }
+  }, [reply.media]);
 
   const countAllChildren = (reply) => {
-    if (!reply.children || reply.children.length === 0) return 0;
+    if (!reply.children?.length) return 0;
     let total = reply.children.length;
-    reply.children.forEach((child) => {
-      total += countAllChildren(child);
-    });
+    reply.children.forEach(child => total += countAllChildren(child));
     return total;
   };
 
   const flattenChildren = (reply) => {
-    if (!reply.children || reply.children.length === 0) return [];
-    let children = [];
-    reply.children.forEach((child) => {
-      children.push(child);
-      children = children.concat(flattenChildren(child));
-    });
+    if (!reply.children?.length) return [];
+    let children = [...reply.children];
+    reply.children.forEach(child => children.push(...flattenChildren(child)));
     return children;
   };
 
-  const totalChildren = countAllChildren(reply);
-  const allChildren = flattenChildren(reply);
-  const visibleChildren = allChildren.slice(0, visibleChildrenCount);
-  const hasMoreChildren = allChildren.length > visibleChildrenCount;
+  const visibleChildren = flattenChildren(reply).slice(0, visibleChildrenCount);
+  const hasMoreChildren = flattenChildren(reply).length > visibleChildrenCount;
 
   const loadMoreChildren = () => {
-    setVisibleChildrenCount((prev) => prev + 2);
+    setVisibleChildrenCount(prev => prev + 2);
   };
 
   const toggleChildren = () => {
-    setShowChildren((prev) => !prev);
-  };
-
-  const handleReport = async (reason) => {
-    try {
-      const response = await axios.post(
-        `${config.apiUrl}/reports`,
-        {
-          reason,
-          reportable_id: reply.id,
-          reportable_type: 'App\\Models\\Reply',
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      alert(response.data.message);
-    } catch (error) {
-      console.error('Ошибка при отправке отчета:', error.response?.data || error.message);
-      alert('Не удалось отправить жалобу: ' + (error.response?.data?.message || error.message));
-    }
+    setShowChildren(prev => !prev);
   };
 
   const handleLike = async () => {
     try {
-      console.log('Sending like request for reply:', reply.id);
       const token = localStorage.getItem('token');
       if (!token) {
         alert('Пожалуйста, войдите в систему для добавления лайка');
         return;
       }
+
       let response;
       if (userReaction === 'like') {
-        response = await axios.delete(
-          `${config.apiUrl}/reactions`,
-          {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            data: {
-              reactable_id: reply.id,
-              reactable_type: 'App\\Models\\Reply',
-            },
-          }
-        );
+        response = await axios.delete(`${config.apiUrl}/reactions`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          data: { reactable_id: reply.id, reactable_type: 'App\\Models\\Reply' },
+        });
         setLikes(response.data.likes || likes - 1);
         setUserReaction(null);
       } else {
-        response = await axios.post(
-          `${config.apiUrl}/reactions`,
-          {
-            reactable_id: reply.id,
-            reactable_type: 'App\\Models\\Reply',
-            reaction: 'like',
-          },
-          {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          }
-        );
+        response = await axios.post(`${config.apiUrl}/reactions`, {
+          reactable_id: reply.id,
+          reactable_type: 'App\\Models\\Reply',
+          reaction: 'like',
+        }, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
         setLikes(response.data.likes || likes + 1);
         setUserReaction('like');
       }
-      console.log('Like response:', response.data);
     } catch (error) {
-      console.error('Like error:', error.response?.data || error.message);
-      alert('Ошибка: ' + (error.response?.data?.message || error.message));
+      console.error('Ошибка при установке лайка:', error.message);
+      alert('Не удалось поставить лайк');
     }
   };
 
-  const userInitial = reply.user?.username ? reply.user.username.charAt(0).toUpperCase() : 'Н';
-  const avatarColor = level % 2 === 0 ? 'bg-purple-600' : 'bg-blue-600';
-
   const formatRelativeTime = (dateString) => {
-    if (!dateString) return 'Время неизвестно';
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
-
     if (diffInSeconds < 60) return 'сейчас';
+
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) {
       const minutesWord = diffInMinutes === 1 ? 'минуту' : diffInMinutes >= 2 && diffInMinutes <= 4 ? 'минуты' : 'минут';
       return `${diffInMinutes} ${minutesWord} назад`;
     }
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) {
       const hoursWord = diffInHours === 1 ? 'час' : diffInHours >= 2 && diffInHours <= 4 ? 'часа' : 'часов';
       return `${diffInHours} ${hoursWord} назад`;
     }
-    const months = [
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-    ];
-    const hours = date.getHours();
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     const day = date.getDate();
     const month = months[date.getMonth()];
     const year = date.getFullYear();
-    return `${hours}:${minutes}, ${day} ${month} ${year}`;
+
+    return `${day} ${month}, ${year}`;
   };
+
+  const handleMediaError = async (media, e, retryCount = 0) => {
+    const mediaId = media.id;
+    if (loadingMedia[mediaId] || retryCount > 2) return;
+
+    console.error(`Ошибка загрузки медиа: ${media.content[`${media.type}_url`]}`, { mediaId, retryCount });
+
+    setLoadingMedia(prev => ({ ...prev, [mediaId]: true }));
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('Токен отсутствует, невозможно обновить ссылку');
+      setErrorMedia(prev => ({ ...prev, [mediaId]: 'Токен отсутствует' }));
+      e.target.src = '/default-image.png';
+      setLoadingMedia(prev => ({ ...prev, [mediaId]: false }));
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `${config.apiUrl}/media/${mediaId}/refresh`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.url) {
+        const normalizedUrl = normalizeYandexUrl(response.data.url);
+        if (normalizedUrl) {
+          setMediaUrls(prev => ({ ...prev, [mediaId]: normalizedUrl }));
+          e.target.src = normalizedUrl;
+        } else {
+          throw new Error('Invalid URL format received');
+        }
+      } else {
+        console.warn('Получена пустая ссылка от сервера', { mediaId });
+        setErrorMedia(prev => ({ ...prev, [mediaId]: 'Пустая ссылка от сервера' }));
+        e.target.src = '/default-image.png';
+      }
+    } catch (err) {
+      console.error('Не удалось обновить ссылку:', {
+        mediaId,
+        message: err.response?.data?.message || err.message,
+        status: err.response?.status,
+      });
+      setErrorMedia(prev => ({ ...prev, [mediaId]: err.response?.data?.message || err.message }));
+      if (retryCount < 2) {
+        setTimeout(() => handleMediaError(media, e, retryCount + 1), 1000);
+      } else {
+        e.target.src = '/default-image.png';
+      }
+    } finally {
+      setLoadingMedia(prev => ({ ...prev, [mediaId]: false }));
+    }
+  };
+
+  const hasTextContent = reply.content && reply.content.trim() !== '';
 
   return (
     <li className="sm:py-2" style={{ marginLeft: `${indent}px` }}>
-      <div className="flex items-start space-x-2">
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold`}>
-          {userInitial}
+      <div className="flex items-start gap-2">
+        <div className="flex-shrink-0">
+          <UserAvatar user={reply.user} size="small" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center space-x-1">
-            <span className="font-bold text-black">
-              {reply.user?.username || 'Неизвестный'}
-            </span>
-            {level >= 1 && reply.parent?.user && (
-              <div className="flex items-center text-gray-500 text-sm">
-                <ArrowRightIcon className="h-3 w-3 mx-1" />
-                <span className="text-gray-500">{reply.parent.user.username}</span>
-              </div>
-            )}
-            <div className="ml-auto">
-              <OptionsMenu onReport={handleReport} />
+
+        <div className="flex-1 bg-gray-50 p-3 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">{reply.user?.username || 'Неизвестный'}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={handleLike} className="flex items-center gap-1 text-red-500">
+                <HeartIcon className={`h-5 w-5 ${userReaction === 'like' ? 'fill-red-500' : ''}`} />
+                <span>{likes}</span>
+              </button>
+              <OptionsMenu />
             </div>
           </div>
-          <p className="text-black mt-1 prose max-w-none">{parse(reply.content || 'Без текста')}</p>
+
+          {hasTextContent && (
+            <p className="text-black mt-1 prose max-w-none">
+              {parse(reply.content)}
+            </p>
+          )}
+
           {reply.media?.length > 0 && (
             <div className="mt-2 space-y-2">
-              {reply.media.map((media) => (
+              {reply.media.map(media => (
                 <div key={media.id}>
-                  {media.type === 'image' && media.content?.image_url && (
-                    <img
-                      src={media.content.image_url}
-                      alt="Media"
-                      className="max-w-full max-h-48 object-contain rounded-lg bg-gray-100"
-                      onError={(e) => {
-                        console.error(`Failed to load image: ${media.content.image_url}`);
-                        e.target.src = 'https://placehold.co/600x400';
-                      }}
-                    />
-                  )}
-                  {media.type === 'video' && media.content?.video_url && (
+                  {media.content && media.type === 'image' && media.content.image_url ? (
+                    <div className="relative">
+                      {loadingMedia[media.id] && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50 rounded-lg">
+                          <span className="text-gray-600">Загрузка...</span>
+                        </div>
+                      )}
+                      {errorMedia[media.id] && (
+                        <div className="text-red-500 text-sm">{errorMedia[media.id]}</div>
+                      )}
+                      <img
+                        src={normalizeYandexUrl(mediaUrls[media.id] || media.content.image_url) || '/default-image.png'}
+                        alt="Медиа"
+                        className="max-w-full max-h-48 object-contain rounded-lg bg-gray-100"
+                        onError={(e) => handleMediaError(media, e)}
+                      />
+                    </div>
+                  ) : media.content && media.type === 'video' && media.content.video_url ? (
                     <video
-                      src={media.content.video_url}
-                      className="max-w-full max-h-48 object-contain rounded-lg"
+                      src={normalizeYandexUrl(mediaUrls[media.id] || media.content.video_url)}
                       controls
-                    />
-                  )}
-                  {media.type === 'audio' && media.content?.music_url && (
+                      className="w-full max-h-48 object-contain rounded"
+                      onError={(e) => {
+                        console.error(`Ошибка загрузки видео: ${media.content.video_url}`, { mediaId: media.id });
+                        setErrorMedia(prev => ({ ...prev, [media.id]: 'Ошибка загрузки видео' }));
+                      }}
+                    >
+                      Ваш браузер не поддерживает видео.
+                    </video>
+                  ) : media.content && media.type === 'music' && media.content.music_url ? (
                     <audio
-                      src={media.content.music_url}
-                      className="w-full"
+                      src={normalizeYandexUrl(mediaUrls[media.id] || media.content.music_url)}
                       controls
-                    />
+                      className="w-full"
+                      onError={(e) => {
+                        console.error(`Ошибка загрузки аудио: ${media.content.music_url}`, { mediaId: media.id });
+                        setErrorMedia(prev => ({ ...prev, [media.id]: 'Ошибка загрузки аудио' }));
+                      }}
+                    >
+                      Ваш браузер не поддерживает аудио.
+                    </audio>
+                  ) : (
+                    <div className="text-red-500 text-sm">
+                      Некорректные данные медиа: {JSON.stringify(media)}
+                    </div>
                   )}
                 </div>
               ))}
             </div>
           )}
-          <div className="text-gray-500 text-sm mt-1">
-            {formatRelativeTime(reply.created_at)}
-          </div>
-          <div className="flex items-center mt-1 space-x-2">
-            <button
-              onClick={handleLike}
-              className={`flex items-center space-x-1 text-sm transition-colors ${
-                userReaction === 'like' ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
-              }`}
-              disabled={!isJoined}
-            >
-              <HeartIcon className="h-4 w-4" />
-              <span>{likes}</span>
-            </button>
+
+          <div className="mt-2 flex items-center text-xs text-gray-500">
             {isJoined && (
               <button
                 onClick={() => setReplyTo(reply.id)}
-                className="text-gray-500 text-sm"
+                className="mr-4 hover:underline"
               >
                 Ответить
               </button>
             )}
-            {totalChildren > 0 && (
+            <span>{formatRelativeTime(reply.created_at)}</span>
+            {reply.children?.length > 0 && (
               <button
                 onClick={toggleChildren}
-                className="text-gray-500 text-sm flex items-center space-x-1"
+                className="ml-4 hover:underline flex items-center"
               >
+                {showChildren ? 'Скрыть' : `Показать (${countAllChildren(reply)})`}
                 {showChildren ? (
-                  <>
-                    <ChevronUpIcon className="h-4 w-4" />
-                    <span>Скрыть ответы ({totalChildren})</span>
-                  </>
+                  <ChevronUpIcon className="h-4 w-4 inline ml-1" />
                 ) : (
-                  <>
-                    <ChevronDownIcon className="h-4 w-4" />
-                    <span>Показать ответы ({totalChildren})</span>
-                  </>
+                  <ChevronDownIcon className="h-4 w-4 inline ml-1" />
                 )}
               </button>
             )}
           </div>
         </div>
       </div>
+
       {showChildren && visibleChildren.length > 0 && (
         <ul className="mt-2 space-y-2">
-          {visibleChildren.map((child) => (
+          {visibleChildren.map(child => (
             <ReplyItem
               key={child.id}
               reply={child}
@@ -289,12 +321,13 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
           ))}
         </ul>
       )}
+
       {showChildren && hasMoreChildren && (
         <button
           onClick={loadMoreChildren}
-          className="mt-2 text-gray-500 text-sm"
+          className="mt-2 text-indigo-600 text-sm hover:underline"
         >
-          Показать ещё ({allChildren.length - visibleChildrenCount})
+          Показать еще ({flattenChildren(reply).length - visibleChildrenCount})
         </button>
       )}
     </li>
@@ -302,12 +335,12 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
 };
 
 const RepliesList = ({ replies, isJoined, setReplyTo }) => {
-  const [visibleRepliesCount, setVisibleRepliesCount] = useState(5); // Initially show 5 replies
+  const [visibleRepliesCount, setVisibleRepliesCount] = useState(5);
   const visibleReplies = replies.slice(0, visibleRepliesCount);
   const hasMoreReplies = replies.length > visibleRepliesCount;
 
   const loadMoreReplies = () => {
-    setVisibleRepliesCount((prev) => prev + 5); // Load 5 more replies
+    setVisibleRepliesCount((prev) => prev + 5);
   };
 
   return (
@@ -329,9 +362,9 @@ const RepliesList = ({ replies, isJoined, setReplyTo }) => {
           {hasMoreReplies && (
             <button
               onClick={loadMoreReplies}
-              className="mt-4 px-4 py-2 bg-form-bg text-text-primary rounded-lg hover:bg-button-hover transition-colors"
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
-              Далее ({replies.length - visibleRepliesCount})
+              Показать еще ({replies.length - visibleRepliesCount})
             </button>
           )}
         </>

@@ -72,22 +72,8 @@ export default function UserProfile({ user, setUser }) {
 
   const handleAvatarUpload = async (e) => {
     e.preventDefault();
-    if (!avatar) {
-      setError('Выберите файл');
-      return;
-    }
+    if (!avatar) return setError('Выберите файл');
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-    if (!allowedTypes.includes(avatar.type)) {
-      setError('Файл должен быть изображением (JPEG, PNG, JPG, GIF)');
-      return;
-    }
-    if (avatar.size > 2 * 1024 * 1024) {
-      setError('Размер файла не должен превышать 2MB');
-      return;
-    }
-
-    setSubmitting(true);
     const formData = new FormData();
     formData.append('avatar', avatar);
 
@@ -96,19 +82,16 @@ export default function UserProfile({ user, setUser }) {
       const response = await axios.post(`${config.apiUrl}/update-avatar`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
       });
+
       setUser({ ...user, avatar: response.data.avatar });
       setError('');
       setAvatar(null);
     } catch (err) {
-      if (err.response?.status === 422) {
-        const errors = err.response.data.errors;
-        const errorMessages = Object.values(errors).flat().join(', ');
-        setError(errorMessages);
-      } else {
-        setError(err.response?.data?.message || 'Ошибка загрузки аватара');
-      }
+      console.error('Ошибка загрузки аватара:', err.message);
+      setError(err.response?.data?.message || 'Не удалось загрузить аватар');
     } finally {
       setSubmitting(false);
     }

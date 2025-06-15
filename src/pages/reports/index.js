@@ -35,8 +35,7 @@ export default function ReportsPage() {
 
   const tabs = [
     { id: 'discussions', label: 'Обсуждения' },
-    { id: 'users', label: 'Пользователи' },
-    { id: 'replies', label: 'Ответы' },
+    { id: 'users', label: 'Пользователи' }
   ];
 
   return (

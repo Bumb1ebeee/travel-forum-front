@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import config from "@/pages/api/config";
+import Image from 'next/image';
 
 export default function Setup2FA() {
   const [qrCode, setQrCode] = useState('');
@@ -55,7 +56,7 @@ export default function Setup2FA() {
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
         {success && <p className="text-green-500 text-center mb-4">{success}</p>}
         {qrCode && (
-          <img
+          <Image
             src={`data:image/png;base64,${qrCode}`}
             alt="QR Code"
             className="mx-auto mb-4"

@@ -42,7 +42,7 @@ export default function DiscussionsTypePage() {
     <SidebarLayout>
       <div className="mt-6 m-3 sm:mt-0">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{typeTitles[type]}</h2>
-        <DiscussionsPage user={user} type={type}/>
+        <DiscussionsPage user={user} type={type} />
       </div>
     </SidebarLayout>
   );

@@ -8,6 +8,8 @@ import SubscriptionButton from '@/components/user_page/SubscriptionButton';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
 import ErrorMessage from '@/components/error/ErrorMessage';
 import MainLayout from "@/layouts/main.layout";
+import ReportButton from "@/components/user_page/ReportButton";
+import UserProfileActions from "@/components/user_page/userProfileAction";
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -18,6 +20,12 @@ export default function UserProfilePage() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const handleReport = useCallback(() => {
+    console.log('Жалоба на пользователя', id, 'отправлена');
+  }, [id]);
+
+  const [hasReported, setHasReported] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -56,7 +64,7 @@ export default function UserProfilePage() {
         // Загрузка подписок текущего пользователя
         let userSubscriptions = [];
         try {
-          const subscriptionsResponse = await axios.get(`${config.apiUrl}/subscriptions/user`, { headers });
+          const subscriptionsResponse = await axios.get(`${config.apiUrl}/subscriptions/users`, { headers });
           userSubscriptions = subscriptionsResponse.data.subscriptions || [];
           console.log('User subscriptions:', userSubscriptions);
         } catch (err) {
@@ -93,6 +101,9 @@ export default function UserProfilePage() {
     fetchUserData();
   }, [id, router]);
 
+
+  const isOwnProfile = currentUserId && user?.id === currentUserId;
+
   const handleSubscription = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -122,6 +133,33 @@ export default function UserProfilePage() {
     }
   }, [id, isSubscribed, router]);
 
+  useEffect(() => {
+    const checkReported = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token || !id) return;
+
+        const response = await axios.get(`${config.apiUrl}/reports`, {
+          params: { type: 'users' },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Проверяем, что reports существует
+        const reports = response.data.groups || [];
+        const reported = reports.some(
+          r => r.reportable_id === parseInt(id)
+        );
+        setHasReported(reported);
+      } catch (err) {
+        console.error('Ошибка проверки жалобы:', err);
+      }
+    };
+
+    if (!isOwnProfile) {
+      checkReported();
+    }
+  }, [id, isOwnProfile]);
+
   if (loading) {
     return <LoadingIndicator />;
   }
@@ -134,19 +172,26 @@ export default function UserProfilePage() {
     );
   }
 
-  const isOwnProfile = currentUserId && user.id === currentUserId;
-
   return (
     <MainLayout>
       <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="bg-white rounded-xl shadow-md p-6 transition-all hover:shadow-lg">
+        <div className="mx-auto space-y-8">
+          <div className="bg-white rounded-xl shadow-md p-6 transition-all hover:shadow-lg relative">
             <UserProfile user={user}/>
             {!isOwnProfile && (
-              <SubscriptionButton
-                isSubscribed={isSubscribed}
-                handleSubscription={handleSubscription}
+              <UserProfileActions
+                userId={user.id}
+                currentUserId={currentUserId}
+                onReport={handleReport}
               />
+            )}
+            {!isOwnProfile && (
+              <div className="mt-4 flex space-x-4">
+                <SubscriptionButton
+                  isSubscribed={isSubscribed}
+                  handleSubscription={handleSubscription}
+                />
+              </div>
             )}
           </div>
           <UserDiscussions discussions={discussions}/>

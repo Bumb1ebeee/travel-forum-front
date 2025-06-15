@@ -7,6 +7,8 @@ import axios from 'axios';
 import config from '@/pages/api/config';
 import SidebarLayout from '@/layouts/sidebar.layout';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
+import Image from 'next/image'
+import UserAvatar from "@/components/profile/profile/userAvatar";
 
 export default function UserSubscriptionsPage() {
   const [user, setUser] = useState(null);
@@ -62,12 +64,8 @@ export default function UserSubscriptionsPage() {
                 className="p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => router.push(`/users/${sub.user.id}`)}
               >
-                <div className="flex items-center">
-                  <img
-                    src={sub.user.avatar || '/default-avatar.png'}
-                    alt={sub.user.name}
-                    className="w-10 h-10 rounded-full mr-4"
-                  />
+                <div className="flex items-center gap-3">
+                  <UserAvatar user={sub.user} size="small" />
                   <p><span className="text-lg text-gray-800">{sub.user.name}</span></p>
                 </div>
               </li>

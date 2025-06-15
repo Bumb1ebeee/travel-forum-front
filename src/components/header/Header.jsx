@@ -7,6 +7,7 @@ import { isAuthenticated, resetAuthCache } from '@/utils/auth'; // Импорт�
 import Image from 'next/image';
 import axios from 'axios';
 import config from '@/pages/api/config';
+import UserAvatar from "@/components/profile/profile/userAvatar";
 
 export default function Header() {
   const [isAuth, setIsAuth] = useState(false);
@@ -156,7 +157,7 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm fixed top-0 left-0 w-full z-40">
-      <div className="flex justify-between items-center px-4 sm:px-8 py-2 max-w-screen-xl mx-auto">
+      <div className="flex justify-between items-center px-4 sm:px-8 py-2 mx-auto">
         {/* Логотип */}
         <Link href="/" className="flex-shrink-0">
           <Image
@@ -235,14 +236,8 @@ export default function Header() {
             <div className="text-gray-500">Загрузка...</div>
           ) : isAuth ? (
             <div className="flex items-center gap-3">
-              <Link href="/profile" className="relative">
-                <Image
-                  src={user?.avatar || `${config.url}/storage/avatars/default.jpg`}
-                  alt="Avatar"
-                  width={40}
-                  height={40}
-                  className="rounded-full object-cover w-10 h-10"
-                />
+              <Link href="/profile">
+                <UserAvatar user={user} size="small" />
               </Link>
               <Link href="/profile" className="text-gray-600 hidden sm:block">
                 {user?.name || 'Пользователь'}

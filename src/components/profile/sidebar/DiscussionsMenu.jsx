@@ -19,13 +19,13 @@ const DiscussionsMenu = ({ isActive, drafts, published, pending, rejected, route
           }`}
           onClick={() => setIsOpen(!isOpen)}
         >
-          <MdChat className="mr-2" /> Обсуждения
+          <MdChat className="mr-2" /> Публикации
           <span className="ml-auto">{isOpen ? '▲' : '▼'}</span>
         </button>
         <button
           onClick={handleCreateDiscussion}
           className="p-2 ml-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-          title="Создать новое обсуждение"
+          title="Создать новую публикацию"
         >
           <MdAdd className="w-5 h-5" />
         </button>

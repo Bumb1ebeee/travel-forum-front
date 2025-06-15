@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '@/pages/api/config';
-import ReportCard from './ReportCard';
+import ReportCardGroup from './ReportCardGroup';
+
 
 export default function ReportsContent({ type, user }) {
   const [reports, setReports] = useState([]);
@@ -18,8 +19,7 @@ export default function ReportsContent({ type, user }) {
         const response = await axios.get(`${config.apiUrl}/reports?type=${type}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setReports(response.data.reports || []);
-      } catch (err) {
+        setReports(response.data.groups || []);      } catch (err) {
         setError(err.response?.data?.message || 'Ошибка загрузки жалоб');
       } finally {
         setLoading(false);
@@ -42,6 +42,27 @@ export default function ReportsContent({ type, user }) {
       setReports(reports.filter(report => report.id !== reportId));
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка при модерации жалобы');
+    }
+  };
+
+  const handleGroupModerate = async (reportableId, status, comment) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${config.apiUrl}/reports/group`,
+        {
+          reportable_id: reportableId,
+          status,
+          comment
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setReports(reports.filter(g => g.reportable_id !== reportableId));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Ошибка при групповой модерации');
     }
   };
 
@@ -71,12 +92,11 @@ export default function ReportsContent({ type, user }) {
 
   return (
     <div className="grid gap-3 sm:gap-6">
-      {reports.map((report) => (
-        <ReportCard
-          key={report.id}
-          report={report}
-          onModerate={handleModerate}
-          type={type}
+      {reports.map((group) => (
+        <ReportCardGroup
+          key={`${group.reportable_type}-${group.reportable_id}`}
+          group={group}
+          onGroupModerate={handleGroupModerate}
         />
       ))}
     </div>

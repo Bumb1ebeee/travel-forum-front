@@ -25,6 +25,7 @@ const DiscussionForm = ({
                           submitting = false,
                           error = '',
                           editDiscussion = null,
+                          onUpdate
                         }) => {
   const fileInputRef = useRef(null);
   const imgRef = useRef(null);
@@ -42,6 +43,7 @@ const DiscussionForm = ({
   const [step, setStep] = useState(1);
   const [mediaItems, setMediaItems] = useState([]);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [initialData, setInitialData] = useState(null);
 
   const [discussionData, setDiscussionData] = useState(
     isEdit && editDiscussion
@@ -74,52 +76,102 @@ const DiscussionForm = ({
       }
   );
 
-  // Инициализация mediaItems из editDiscussion.media
+  if (isEdit && !editDiscussion) {
+    console.error('editDiscussion не предоставлен для режима редактирования');
+    return <div className="text-center text-red-500">Ошибка: данные обсуждения не загружены</div>;
+  }
+
   useEffect(() => {
-    if (isEdit && editDiscussion?.media) {
-      console.log('Инициализация медиа:', JSON.stringify(editDiscussion.media, null, 2));
-      const initialMediaItems = editDiscussion.media
-        .filter((m) => m && m.id)
-        .map((m) => ({
-          id: String(m.id), // Используем только m.id
-          content_type: m.file_type?.startsWith('image/')
-            ? 'image'
-            : m.file_type?.startsWith('video/')
-              ? 'video'
-              : m.file_type?.startsWith('audio/')
-                ? 'music'
-                : m.content?.map_points
-                  ? 'map'
-                  : 'text',
-          content: {
-            image_url: m.content?.image_url || '',
-            video_url: m.content?.video_url || '',
-            music_url: m.content?.music_url || '',
-            text_content: m.content?.text_content || '',
-            map_points: m.content?.map_points || [],
-            file_id: m.content?.file_id || String(m.id),
-          },
-          file_type: m.file_type || '',
-          order: m.order || 0,
-        }));
-      setMediaItems(initialMediaItems);
-      setDiscussionData((prev) => ({
-        ...prev,
-        images: initialMediaItems
-          .filter((m) => m.content_type === 'image')
-          .map((m) => ({ url: m.content.image_url, mediaId: m.id })),
-        videos: initialMediaItems
-          .filter((m) => m.content_type === 'video')
-          .map((m) => ({ url: m.content.video_url, mediaId: m.id })),
-        audio: initialMediaItems.find((m) => m.content_type === 'music')
-          ? { url: m.content.music_url, mediaId: m.id }
-          : null,
-        map: initialMediaItems.find((m) => m.content_type === 'map')?.content.map_points || [],
-      }));
+    if (isEdit && editDiscussion) {
+      const initial = {
+        discussionData: { ...discussionData },
+        mediaItems: [],
+      };
+      setInitialData(initial);
     }
   }, [isEdit, editDiscussion]);
 
-  // Загрузка категорий
+  useEffect(() => {
+    if (isEdit && editDiscussion?.media) {
+      console.log('Инициализация медиа:', JSON.stringify(editDiscussion.media, null, 2));
+      const mediaArray = Array.isArray(editDiscussion.media) ? editDiscussion.media : [];
+      const initialMediaItems = mediaArray
+        .filter((media) => {
+          if (!media || typeof media !== 'object' || !media.id) {
+            console.warn('Некорректный элемент медиа:', media);
+            return false;
+          }
+          return true;
+        })
+        .map((media) => {
+          let contentType = media.type || 'text';
+          if (media.content?.image_url && media.content.image_url !== '') {
+            contentType = 'image';
+          } else if (media.content?.video_url && media.content.video_url !== '') {
+            contentType = 'video';
+          } else if (media.content?.music_url && media.content.music_url !== '') {
+            contentType = 'music';
+          } else if (
+            media.content?.map_points &&
+            Array.isArray(media.content.map_points) &&
+            media.content.map_points.length > 0
+          ) {
+            contentType = 'map';
+          } else if (media.content?.text_content && media.content.text_content !== '') {
+            contentType = 'text';
+          } else if (media.type === 'music' && media.content?.url) {
+            contentType = 'music';
+          }
+
+          return {
+            id: String(media.id),
+            content_type: contentType,
+            type: media.type || contentType,
+            content: {
+              image_url: media.content?.image_url || '',
+              video_url: media.content?.video_url || '',
+              music_url: media.content?.music_url || media.content?.url || '',
+              text_content: media.content?.text_content || '',
+              map_points: media.content?.map_points || [],
+              file_id: media.content?.file_id || String(media.id),
+            },
+            file_type: media.file_type || '',
+            order: media.order || 0,
+          };
+        });
+
+      console.log('Созданные initialMediaItems:', JSON.stringify(initialMediaItems, null, 2));
+
+      setMediaItems(initialMediaItems);
+      setDiscussionData((prev) => {
+        console.log('Обновление discussionData, initialMediaItems:', initialMediaItems.length);
+        return {
+          ...prev,
+          images: initialMediaItems
+            .filter((mediaItem) => mediaItem.content_type === 'image')
+            .map((mediaItem) => ({
+              url: mediaItem.content.image_url,
+              mediaId: mediaItem.id,
+            })),
+          videos: initialMediaItems
+            .filter((mediaItem) => mediaItem.content_type === 'video')
+            .map((mediaItem) => ({
+              url: mediaItem.content.video_url,
+              mediaId: mediaItem.id,
+            })),
+          audio: initialMediaItems
+            .filter((mediaItem) => mediaItem.content_type === 'music')
+            .map((mediaItem) => ({
+              url: mediaItem.content.music_url || mediaItem.content.url,
+              mediaId: mediaItem.id,
+            })),
+          map: initialMediaItems.find((mediaItem) => mediaItem.content_type === 'map')?.content.map_points || [],
+        };
+      });
+      setInitialData((prev) => (prev ? { ...prev, mediaItems: initialMediaItems } : prev));
+    }
+  }, [isEdit, editDiscussion]);
+
   useEffect(() => {
     if (!categories.length) {
       const fetchCategories = async () => {
@@ -145,7 +197,6 @@ const DiscussionForm = ({
     }
   }, [categories]);
 
-  // Обновление ошибки
   useEffect(() => {
     if (error) setFormError(error);
   }, [error]);
@@ -222,48 +273,53 @@ const DiscussionForm = ({
 
   const handleDeleteMedia = async (mediaId) => {
     try {
-      console.log('Deleting media with ID:', mediaId);
-      const discussionId = draftId || discussionData.id;
-      if (!discussionId) {
-        console.warn('ID обсуждения не определён');
-        toast.error('Не удалось определить ID обсуждения');
-        return;
+      console.log('Удаление медиа с ID:', mediaId);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Требуется авторизация. Пожалуйста, войдите в систему.');
       }
-      // Проверка существования медиа
-      console.log('Fetching media for discussion:', discussionId);
-      const { data } = await axios.get(`/api/media?mediable_id=${discussionId}&mediable_type=App\\Models\\Discussion`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      console.log('Media response:', JSON.stringify(data.media, null, 2));
-      const mediaExists = data.media.find((item) => item.id === parseInt(mediaId));
-      if (!mediaExists) {
-        console.warn('Медиа не найдено:', mediaId);
-        toast.warn('Медиа не найдено в базе данных');
-        return; // Не обновляем mediaItems
-      }
+
       await axios.delete(`/api/media/${mediaId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      // Обновить mediaItems после успешного удаления
-      const updatedMedia = data.media.filter((item) => item.id !== parseInt(mediaId));
-      setMediaItems(updatedMedia.map((m) => ({
-        id: String(m.id),
-        content_type: m.type,
-        content: {
-          image_url: m.content?.image_url || '',
-          video_url: m.content?.video_url || '',
-          music_url: m.content?.music_url || '',
-          text_content: m.content?.text_content || '',
-          map_points: m.content?.map_points || [],
-          file_id: m.content?.file_id || String(m.id),
-        },
-        file_type: m.file_type || '',
-        order: m.order || 0,
-      })));
+
+      setMediaItems((prev) => {
+        const updatedMediaItems = prev.filter((item) => item.id !== String(mediaId));
+        console.log('Обновленные mediaItems:', JSON.stringify(updatedMediaItems, null, 2));
+        return updatedMediaItems;
+      });
+
+      setDiscussionData((prev) => ({
+        ...prev,
+        images: prev.images.filter((img) => img.mediaId !== String(mediaId)),
+        videos: prev.videos.filter((vid) => vid.mediaId !== String(mediaId)),
+        audio: prev.audio?.mediaId === String(mediaId) ? null : prev.audio,
+        map: prev.map.length > 0 && mediaItems.find((item) => item.id === String(mediaId))?.content_type === 'map' ? [] : prev.map,
+      }));
+
       toast.success('Медиа удалено');
     } catch (err) {
       console.error('Ошибка удаления медиа:', err.response?.data || err.message);
-      toast.error(err.response?.data?.message || 'Ошибка удаления медиа');
+      const errorMessage = err.response?.data?.message || err.message || 'Ошибка удаления медиа';
+      if (err.response?.status === 404) {
+        setMediaItems((prev) => {
+          const updatedMediaItems = prev.filter((item) => item.id !== String(mediaId));
+          console.log('Медиа не найдено, обновленные mediaItems:', JSON.stringify(updatedMediaItems, null, 2));
+          return updatedMediaItems;
+        });
+        setDiscussionData((prev) => ({
+          ...prev,
+          images: prev.images.filter((img) => img.mediaId !== String(mediaId)),
+          videos: prev.videos.filter((vid) => vid.mediaId !== String(mediaId)),
+          audio: prev.audio?.mediaId === String(mediaId) ? null : prev.audio,
+          map: prev.map.length > 0 && mediaItems.find((item) => item.id === String(mediaId))?.content_type === 'map' ? [] : prev.map,
+        }));
+        toast.info('Медиа не найдено на сервере, удалено из списка');
+      } else if (err.response?.status === 403) {
+        toast.error('Нет прав для удаления этого медиа');
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -353,7 +409,7 @@ const DiscussionForm = ({
         if (!discussionData.title || !discussionData.category_id) {
           throw new Error('Заполните заголовок и категорию перед загрузкой медиа');
         }
-        const draftResponse = await handleSaveDraft();
+        const draftResponse = await saveDraft();
         discussionId = parseInt(draftResponse.draft?.id || draftResponse.data?.id, 10);
         await new Promise((resolve) => setTimeout(resolve, 0));
         setDraftId(discussionId);
@@ -388,6 +444,12 @@ const DiscussionForm = ({
         order: mediaItems.length,
       };
       setMediaItems((prev) => [...prev, newMedia]);
+      setDiscussionData((prev) => ({
+        ...prev,
+        images: response.data.media.type === 'image' ? [...prev.images, { url: response.data.media.content.image_url, mediaId: response.data.media.id }] : prev.images,
+        videos: response.data.media.type === 'video' ? [...prev.videos, { url: response.data.media.content.video_url, mediaId: response.data.media.id }] : prev.videos,
+        audio: response.data.media.type === 'music' ? { url: response.data.media.content.music_url || response.data.media.content.url, mediaId: response.data.media.id } : prev.audio,
+      }));
       toast.success('Медиа загружено');
     } catch (err) {
       console.error('Ошибка загрузки медиа:', {
@@ -513,20 +575,19 @@ const DiscussionForm = ({
         category_id: parseInt(discussionData.category_id, 10),
         description: editorRef.current ? editorRef.current.getHTML() : discussionData.description || '',
         map: discussionData.map || [],
-        map_start: discussionData.map_start || [],
-        map_end: discussionData.map_end || [],
-        status: discussionData.status || 'pending',
-        publish: true,
       };
 
-      const response = await axios.put(`${config.apiUrl}/discussions/${discussionId}`, payload, {
+      const response = await axios.put(`${config.apiUrl}/discussions/${discussionId}/publish`, payload, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 15000,
       });
 
       setFormError('');
       setIsModalOpen(false);
-      toast.success('Обсуждение опубликовано');
+      toast.success(response.data.message || 'Обсуждение опубликовано');
+      if (onUpdate) {
+        onUpdate(response.data.discussion);
+      }
     } catch (err) {
       console.error('Ошибка публикации:', err);
       let errorMessage = err.response?.data?.message || err.message || 'Ошибка публикации';
@@ -534,6 +595,22 @@ const DiscussionForm = ({
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveDraftAndClose = async () => {
+    try {
+      const draftResponse = await saveDraft();
+      if (setIsModalOpen) {
+        setIsModalOpen(false);
+      }
+      toast.success('Черновик сохранён');
+      if (onUpdate) {
+        onUpdate(draftResponse.draft);
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения черновика и закрытия:', error);
+      toast.error('Не удалось сохранить черновик');
     }
   };
 
@@ -569,27 +646,28 @@ const DiscussionForm = ({
     }
   };
 
-  const handleSaveDraftAndClose = async () => {
-    try {
-      await saveDraft();
-      if (setIsModalOpen) {
-        setIsModalOpen(false);
-      } else {
-        console.warn('setIsModalOpen не передан в DiscussionForm');
-      }
-    } catch (error) {
-      console.error('Ошибка сохранения черновика и закрытия:', error);
-      toast.error('Не удалось сохранить черновик');
-    }
-  };
-
-  const onClose = () => {
-    if (setIsModalOpen) {
-      setIsModalOpen(false);
-    }
-  };
-
   const handleCancel = () => {
+    if (isEdit && initialData) {
+      setDiscussionData(initialData.discussionData);
+      setMediaItems(initialData.mediaItems);
+      setDraftId(initialData.discussionData.id);
+    } else {
+      setDiscussionData({
+        title: '',
+        description: '',
+        category_id: '',
+        map: [],
+        map_start: [],
+        map_end: [],
+        status: 'pending',
+        images: [],
+        videos: [],
+        audio: null,
+        is_draft: true,
+      });
+      setMediaItems([]);
+      setDraftId(null);
+    }
     setIsModalOpen(false);
   };
 
@@ -678,7 +756,8 @@ const DiscussionForm = ({
                 onMapChange={handleMapChange}
                 onMediaChange={setMediaItems}
                 initialMapPoints={discussionData.map}
-                initialMediaItems={mediaItems}
+                mediaItems={mediaItems}
+                setMediaItems={setMediaItems}
                 isEdit={isEdit}
               />
               <ActionButtons
