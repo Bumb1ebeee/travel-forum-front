@@ -56,7 +56,7 @@ const OptionsMenu = ({ onReport, onUnsubscribe, onArchive, onUnarchive, isJoined
                   }}
                   className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                 >
-                  Архивировать
+                  Добавить в Избранное
                 </button>
               </li>
             )}
@@ -69,7 +69,7 @@ const OptionsMenu = ({ onReport, onUnsubscribe, onArchive, onUnarchive, isJoined
                   }}
                   className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                 >
-                  Разархивировать
+                  Удалить из Избранного
                 </button>
               </li>
             )}

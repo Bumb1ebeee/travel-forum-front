@@ -75,7 +75,7 @@ const SubscriptionsMenu = ({
                 toggleSidebar?.();
               }}
             >
-              Архив ({loadingSubscriptions ? '...' : formatCount(archiveSubscriptions.length)})
+              Избранное ({loadingSubscriptions ? '...' : formatCount(archiveSubscriptions.length)})
             </button>
           </li>
         </ul>
