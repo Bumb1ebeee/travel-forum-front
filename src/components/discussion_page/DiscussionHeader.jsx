@@ -217,10 +217,6 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
     const fetchSubscribers = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          alert('Пожалуйста, войдите в систему, чтобы поставить дизлайк');
-          return;
-        }
         const response = await axios.get(`${config.apiUrl}/discussions/${discussion.id}/subscribers`, {
           headers: { Authorization: `Bearer ${token}` },
         });
