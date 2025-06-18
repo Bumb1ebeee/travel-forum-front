@@ -39,10 +39,6 @@ export default function RegisterPage() {
       <MainLayout>
         <main className="min-h-screen flex items-center justify-center">
           <div className="w-full max-w-md p-6">
-            <h1 className="text-2xl font-bold text-center mb-6">Создайте аккаунт</h1>
-            <p className="text-gray-600 text-center mb-6">
-              Присоединяйтесь к нашему сообществу путешественников!
-            </p>
             <RegisterForm onSuccess={handleSuccess} />
           </div>
         </main>

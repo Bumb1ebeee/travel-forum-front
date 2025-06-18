@@ -76,7 +76,6 @@ export default function Home() {
       <MainLayout>
         <main className="flex-1 p-3 sm:p-8">
           <div className="mb-8">
-            <h1 className="sr-only">Форум путешествий по России</h1>
             <HeroSlider />
           </div>
           <PopularPage user={user} />

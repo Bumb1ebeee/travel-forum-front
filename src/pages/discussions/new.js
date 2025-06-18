@@ -70,7 +70,6 @@ export default function NewDiscussionPage() {
       </Head>
 
       <SidebarLayout>
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Создание нового обсуждения</h1>
         <DiscussionForm
           isEdit={false}
           categories={categories}

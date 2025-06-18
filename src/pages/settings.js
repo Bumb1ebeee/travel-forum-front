@@ -73,7 +73,6 @@ export default function Settings() {
 
       <SidebarLayout>
         <main className="mt-6 m-3 sm:mt-0">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Настройки профиля</h1>
           <SettingsContent user={user} setUser={setUser} />
         </main>
       </SidebarLayout>

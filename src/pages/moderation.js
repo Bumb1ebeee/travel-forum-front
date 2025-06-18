@@ -74,7 +74,6 @@ export default function Moderation() {
 
       <SidebarLayout>
         <main className="mt-6 m-3 sm:mt-0">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Панель модератора</h1>
           <ModerationContent user={user} />
         </main>
       </SidebarLayout>
