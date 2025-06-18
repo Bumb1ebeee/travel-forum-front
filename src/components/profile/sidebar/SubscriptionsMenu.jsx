@@ -1,5 +1,3 @@
-// файл: components/Sidebar/SubscriptionsMenu.jsx или аналогичный путь
-
 import React, { useState } from 'react';
 import { MdSubscriptions } from 'react-icons/md';
 
@@ -16,6 +14,7 @@ const SubscriptionsMenu = ({
 
   // Форматирование числа (например, 1500 → "1.5K+")
   const formatCount = (count) => {
+    if (count === 0) return '0';
     if (count > 999) return `${(count / 1000).toFixed(1)}K+`;
     return count;
   };
@@ -49,7 +48,7 @@ const SubscriptionsMenu = ({
                 toggleSidebar?.();
               }}
             >
-              Пользователи ({loadingSubscriptions ? '...' : formatCount(userSubscriptions.length)})
+              Пользователи
             </button>
           </li>
 
@@ -62,7 +61,7 @@ const SubscriptionsMenu = ({
                 toggleSidebar?.();
               }}
             >
-              Обсуждения ({loadingSubscriptions ? '...' : formatCount(discussionSubscriptions.length)})
+              Обсуждения
             </button>
           </li>
 
@@ -75,7 +74,7 @@ const SubscriptionsMenu = ({
                 toggleSidebar?.();
               }}
             >
-              Избранное ({loadingSubscriptions ? '...' : formatCount(archiveSubscriptions.length)})
+              Избранное
             </button>
           </li>
         </ul>

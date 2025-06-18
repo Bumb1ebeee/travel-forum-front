@@ -8,6 +8,7 @@ import { HandThumbUpIcon, HandThumbDownIcon } from '@heroicons/react/24/solid';
 const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
   const router = useRouter();
   const [likes, setLikes] = useState(discussion.likes || 0);
+  const [dislikes, setDislikes] = useState(discussion.dislikes || 0); // Новое состояние для дизлайков
   const [userReaction, setUserReaction] = useState(null);
   const [isArchived, setIsArchived] = useState(false);
   const [isJoinedState, setIsJoinedState] = useState(isJoined);
@@ -24,6 +25,7 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
         setIsArchived(false);
         setUserReaction(null);
         setLikes(discussion.likes || 0);
+        setDislikes(discussion.dislikes || 0); // Инициализация дизлайков
         setIsAuthor(false);
         return;
       }
@@ -60,12 +62,13 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
         );
         setUserReaction(reactionResponse.data.reaction || null);
 
-        // Fetch likes count
-        const likesResponse = await axios.get(
-          `${config.apiUrl}/discussions/${discussion.id}/likes`,
+        // Fetch likes and dislikes count
+        const reactionsResponse = await axios.get(
+          `${config.apiUrl}/reactions`, // Новый эндпоинт для лайков и дизлайков
           { headers }
         );
-        setLikes(likesResponse.data.likes || 0);
+        setLikes(reactionsResponse.data.likes || 0);
+        setDislikes(reactionsResponse.data.dislikes || 0); // Установка дизлайков
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error.response?.data || error.message);
         setError('Не удалось загрузить данные обсуждения');
@@ -182,6 +185,7 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
       }
 
       if (userReaction === 'like') {
+        // Удаляем лайк
         const response = await axios.delete(
           `${config.apiUrl}/reactions`,
           {
@@ -193,8 +197,10 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
           }
         );
         setLikes(response.data.likes || likes - 1);
+        setDislikes(response.data.dislikes || dislikes); // Обновляем дизлайки
         setUserReaction(null);
       } else {
+        // Ставим лайк
         const response = await axios.post(
           `${config.apiUrl}/reactions`,
           {
@@ -205,6 +211,7 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setLikes(response.data.likes || likes + 1);
+        setDislikes(response.data.dislikes || (userReaction === 'dislike' ? dislikes - 1 : dislikes)); // Уменьшаем дизлайки, если был дизлайк
         setUserReaction('like');
       }
     } catch (error) {
@@ -243,6 +250,7 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
       }
 
       if (userReaction === 'dislike') {
+        // Удаляем дизлайк
         const response = await axios.delete(
           `${config.apiUrl}/reactions`,
           {
@@ -254,8 +262,10 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
           }
         );
         setLikes(response.data.likes || likes);
+        setDislikes(response.data.dislikes || dislikes - 1); // Уменьшаем дизлайки
         setUserReaction(null);
       } else {
+        // Ставим дизлайк
         const response = await axios.post(
           `${config.apiUrl}/reactions`,
           {
@@ -265,7 +275,8 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setLikes(response.data.likes || likes - (userReaction === 'like' ? 1 : 0));
+        setLikes(response.data.likes || (userReaction === 'like' ? likes - 1 : likes)); // Уменьшаем лайки, если был лайк
+        setDislikes(response.data.dislikes || dislikes + 1); // Увеличиваем дизлайки
         setUserReaction('dislike');
       }
     } catch (error) {
@@ -288,6 +299,12 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
               margin-bottom: 1rem;
           }
       `}</style>
+      <button
+        onClick={() => router.back()}
+        className="mb-4 text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+      >
+        ← Назад
+      </button>
       <div className="absolute top-1 right-1 sm:top-4 sm:right-4">
         <OptionsMenu
           onReport={handleReport}
@@ -324,10 +341,10 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
                 />
               )}
               {media.type === 'video' && media.content?.video_url && (
-                <video src={media.content.video_url} controls className="object-cover rounded-lg" />
+                <video src={media.content.video_url} controls className="object-cover rounded-lg"/>
               )}
               {media.type === 'audio' && media.content?.music_url && (
-                <audio src={media.content.music_url} controls className="w-full" />
+                <audio src={media.content.music_url} controls className="w-full"/>
               )}
             </div>
           ))}
@@ -354,7 +371,7 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
               : 'bg-gray-200 text-gray-800 hover:bg-green-500 hover:text-white'
           }`}
         >
-          <HandThumbUpIcon className="h-5 w-5" />
+          <HandThumbUpIcon className="h-5 w-5"/>
           <span>({likes})</span>
         </button>
         <button
@@ -365,7 +382,8 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
               : 'bg-gray-200 text-gray-800 hover:bg-red-500 hover:text-white'
           }`}
         >
-          <HandThumbDownIcon className="h-5 w-5" />
+          <HandThumbDownIcon className="h-5 w-5"/>
+          <span>({dislikes})</span> {/* Добавляем отображение дизлайков */}
         </button>
       </div>
       {!isAuthor && !isJoinedState && !isArchived && (

@@ -6,12 +6,20 @@ import { isAuthenticated } from '@/utils/auth';
 import DiscussionsPage from '@/components/profile/discussions/Discussions';
 import SidebarLayout from '@/layouts/sidebar.layout';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
+import Head from 'next/head';
 
 const typeTitles = {
-  drafts: 'Черновики обсуждений',
-  pending: 'Обсуждения в ожидании',
-  published: 'Опубликованные обсуждения',
-  rejected: 'Отклоненные обсуждения'
+  drafts: 'Черновики обсуждений - Форум Путешествия по России',
+  pending: 'Обсуждения в ожидании - Форум Путешествия по России',
+  published: 'Опубликованные обсуждения - Форум Путешествия по России',
+  rejected: 'Отклоненные обсуждения - Форум Путешествия по России'
+};
+
+const typeDescriptions = {
+  drafts: 'Просмотр ваших черновиков обсуждений на форуме путешествий по России.',
+  pending: 'Обсуждения, ожидающие модерации на форуме путешествий по России.',
+  published: 'Опубликованные обсуждения, доступные всем участникам форума.',
+  rejected: 'Отклоненные обсуждения — просмотрите комментарии модераторов.'
 };
 
 export default function DiscussionsTypePage() {
@@ -38,12 +46,39 @@ export default function DiscussionsTypePage() {
     return <LoadingIndicator />;
   }
 
+  const fullUrl = `http://45.153.191.235/profile/discussions/${type}`;
+
   return (
-    <SidebarLayout>
-      <div className="mt-6 m-3 sm:mt-0">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{typeTitles[type]}</h2>
-        <DiscussionsPage user={user} type={type} />
-      </div>
-    </SidebarLayout>
+    <>
+      <Head>
+        <title>{typeTitles[type]}</title>
+        <meta name="description" content={typeDescriptions[type]} />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta property="og:title" content={typeTitles[type]} />
+        <meta property="og:description" content={typeDescriptions[type]} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={fullUrl} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href={fullUrl} />
+
+        {/* Structured Data / Schema.org */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": typeTitles[type],
+            "description": typeDescriptions[type],
+            "url": fullUrl
+          })
+        }} />
+      </Head>
+
+      <SidebarLayout>
+        <main className="mt-6 m-3 sm:mt-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{typeTitles[type].replace(' - Форум Путешествия по России', '')}</h2>
+          <DiscussionsPage user={user} type={type} />
+        </main>
+      </SidebarLayout>
+    </>
   );
-} 
+}

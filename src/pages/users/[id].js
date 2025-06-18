@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -7,9 +9,10 @@ import UserDiscussions from '@/components/user_page/UserDiscussions';
 import SubscriptionButton from '@/components/user_page/SubscriptionButton';
 import LoadingIndicator from '@/components/loader/LoadingIndicator';
 import ErrorMessage from '@/components/error/ErrorMessage';
-import MainLayout from "@/layouts/main.layout";
-import ReportButton from "@/components/user_page/ReportButton";
-import UserProfileActions from "@/components/user_page/userProfileAction";
+import MainLayout from '@/layouts/main.layout';
+import ReportButton from '@/components/user_page/ReportButton';
+import UserProfileActions from '@/components/user_page/userProfileAction';
+import Head from 'next/head';
 
 export default function UserProfilePage() {
   const router = useRouter();
@@ -20,12 +23,13 @@ export default function UserProfilePage() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [hasReported, setHasReported] = useState(false);
 
   const handleReport = useCallback(() => {
     console.log('Жалоба на пользователя', id, 'отправлена');
   }, [id]);
 
-  const [hasReported, setHasReported] = useState(false);
+  const pageUrl = `http://45.153.191.235/users/${id}`;
 
   useEffect(() => {
     if (!id) return;
@@ -34,7 +38,7 @@ export default function UserProfilePage() {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        console.log('Token:', token);
+
         if (!token) {
           setError('Требуется авторизация');
           setLoading(false);
@@ -43,51 +47,29 @@ export default function UserProfilePage() {
 
         const headers = {
           Authorization: `Bearer ${token}`,
-          'Cache-Control': 'no-cache',
         };
 
-        // Загрузка данных текущего пользователя
-        let currentUser = null;
-        try {
-          const currentUserResponse = await axios.get(`${config.apiUrl}/user`, { headers });
-          currentUser = currentUserResponse.data;
-          setCurrentUserId(currentUser.id);
-          console.log('Current user:', currentUser);
-        } catch (err) {
-          console.error('Ошибка загрузки текущего пользователя:', err.response?.data || err.message);
-          localStorage.removeItem('token');
-          setError('Сессия истекла. Пожалуйста, войдите снова');
-          router.push('/login');
-          return;
-        }
+        // Получаем текущего пользователя
+        const currentUserResponse = await axios.get(`${config.apiUrl}/user`, { headers });
+        setCurrentUserId(currentUserResponse.data.id);
 
-        // Загрузка подписок текущего пользователя
-        let userSubscriptions = [];
-        try {
-          const subscriptionsResponse = await axios.get(`${config.apiUrl}/subscriptions/users`, { headers });
-          userSubscriptions = subscriptionsResponse.data.subscriptions || [];
-          console.log('User subscriptions:', userSubscriptions);
-        } catch (err) {
-          console.error('Ошибка загрузки подписок:', err.response?.data || err.message);
-        }
-
+        // Получаем данные пользователя
         const [userResponse, discussionsResponse] = await Promise.all([
           axios.get(`${config.apiUrl}/users/${id}`, { headers }),
           axios.get(`${config.apiUrl}/users/${id}/discussions`, { headers }),
         ]);
 
-        console.log('User response:', userResponse.data);
         setUser(userResponse.data.user);
         setDiscussions(discussionsResponse.data.discussions || []);
 
-        // Проверка isSubscribed из ответа или подписок
-        const isUserSubscribed = userResponse.data.isSubscribed || userSubscriptions.some(
+        // Проверяем подписку
+        const subscriptionsResponse = await axios.get(`${config.apiUrl}/subscriptions/users`, { headers });
+        const userSubscriptions = subscriptionsResponse.data.subscriptions || [];
+        const isUserSubscribed = userSubscriptions.some(
           (sub) => sub.type === 'user' && sub.user.id === parseInt(id)
         );
         setIsSubscribed(isUserSubscribed);
-        console.log('isSubscribed set to:', isUserSubscribed);
       } catch (err) {
-        console.error('Ошибка загрузки данных:', err.response?.data || err.message);
         setError(err.response?.data?.message || 'Ошибка загрузки данных пользователя');
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
@@ -100,7 +82,6 @@ export default function UserProfilePage() {
 
     fetchUserData();
   }, [id, router]);
-
 
   const isOwnProfile = currentUserId && user?.id === currentUserId;
 
@@ -121,9 +102,7 @@ export default function UserProfilePage() {
         await axios.post(`${config.apiUrl}/subscriptions/${id}`, {}, { headers });
         setIsSubscribed(true);
       }
-      console.log('Subscription updated:', { isSubscribed: !isSubscribed });
     } catch (err) {
-      console.error('Ошибка подписки:', err.response?.data || err.message);
       const message = err.response?.data?.message || 'Ошибка при изменении подписки';
       setError(message);
       if (err.response?.status === 401) {
@@ -144,11 +123,8 @@ export default function UserProfilePage() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        // Проверяем, что reports существует
         const reports = response.data.groups || [];
-        const reported = reports.some(
-          r => r.reportable_id === parseInt(id)
-        );
+        const reported = reports.some(r => r.reportable_id === parseInt(id));
         setHasReported(reported);
       } catch (err) {
         console.error('Ошибка проверки жалобы:', err);
@@ -172,32 +148,70 @@ export default function UserProfilePage() {
     );
   }
 
+  const pageTitle = `${user.name} — Форум путешествий по России`;
+  const pageDescription = `Профиль пользователя "${user.name}" на форуме путешествий по России. Обсуждения и активность.`;
+
   return (
-    <MainLayout>
-      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto space-y-8">
-          <div className="bg-white rounded-xl shadow-md p-6 transition-all hover:shadow-lg relative">
-            <UserProfile user={user}/>
-            {!isOwnProfile && (
-              <UserProfileActions
-                userId={user.id}
-                currentUserId={currentUserId}
-                onReport={handleReport}
-              />
-            )}
-            {!isOwnProfile && (
-              <div className="mt-4 flex space-x-4">
-                <SubscriptionButton
-                  isSubscribed={isSubscribed}
-                  handleSubscription={handleSubscription}
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:image" content={user.avatar || '/logo.png'} />
+        <meta property="profile:username" content={user.username || user.name} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href={pageUrl} />
+
+        {/* Structured Data / Schema.org */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": user.name,
+            "url": pageUrl,
+            "image": user.avatar || "/logo.png",
+            "description": pageDescription,
+            "sameAs": [
+              `http://45.153.191.235/users/${user.id}`
+            ],
+            "interactionStatistic": {
+              "@type": "InteractionCounter",
+              "interactionType": "https://schema.org/UserComments",
+              "userInteractionCount": discussions.length
+            }
+          })
+        }} />
+      </Head>
+
+      <MainLayout>
+        <main className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto space-y-8">
+            <div className="bg-white rounded-xl shadow-md p-6 transition-all hover:shadow-lg relative">
+              <UserProfile user={user} />
+              {!isOwnProfile && (
+                <UserProfileActions
+                  userId={user.id}
+                  currentUserId={currentUserId}
+                  onReport={handleReport}
                 />
-              </div>
-            )}
+              )}
+              {!isOwnProfile && (
+                <div className="mt-4 flex space-x-4">
+                  <SubscriptionButton
+                    isSubscribed={isSubscribed}
+                    handleSubscription={handleSubscription}
+                  />
+                </div>
+              )}
+            </div>
+            <UserDiscussions discussions={discussions} />
+            {error && <ErrorMessage message={error} />}
           </div>
-          <UserDiscussions discussions={discussions}/>
-          {error && <ErrorMessage message={error}/>}
-        </div>
-      </div>
-    </MainLayout>
+        </main>
+      </MainLayout>
+    </>
   );
 }

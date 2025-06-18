@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import config from '@/pages/api/config';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 
-const ReplyForm = ({ discussionId, replyTo, setReplies, onNewReply, onCancel }) => {
+const ReplyForm = ({ discussionId, replyTo, setReplies, onNewReply }) => {
   const [newReply, setNewReply] = useState('');
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
+  const [isVisible, setIsVisible] = useState(false); // Форма скрыта по умолчанию
 
   const isImage = (file) => file.type.startsWith('image/');
   const isVideo = (file) => file.type.startsWith('video/');
@@ -60,13 +60,10 @@ const ReplyForm = ({ discussionId, replyTo, setReplies, onNewReply, onCancel }) 
 
       const newReplyData = response.data.reply;
 
-      // Update replies state
       setReplies((prevReplies) => {
         if (!replyTo) {
-          // Top-level reply: append to the root replies array
           return [newReplyData, ...prevReplies];
         } else {
-          // Nested reply: add to the children of the parent reply
           const addReplyToChildren = (replies, parentId, newReply) => {
             return replies.map((reply) => {
               if (reply.id === parentId) {
@@ -88,7 +85,6 @@ const ReplyForm = ({ discussionId, replyTo, setReplies, onNewReply, onCancel }) 
         }
       });
 
-      // Reset form and replyTo state
       setNewReply('');
       setFiles([]);
       setError('');
@@ -99,89 +95,100 @@ const ReplyForm = ({ discussionId, replyTo, setReplies, onNewReply, onCancel }) 
     }
   };
 
+  if (!isVisible) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsVisible(true)}
+        className="text-indigo-600 hover:text-indigo-800 font-medium text-sm focus:outline-none"
+      >
+        Новый ответ
+      </button>
+    );
+  }
+
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      {replyTo && (
-        <div className="flex items-center justify-between bg-indigo-50 p-2 rounded-lg">
-          <span className="text-sm text-indigo-700">Ответ на комментарий #{replyTo}</span>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-indigo-700 hover:text-indigo-900"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-        </div>
-      )}
-      <textarea
-        value={newReply}
-        onChange={(e) => setNewReply(e.target.value)}
-        placeholder="Введите свой ответ..."
-        rows={4}
-        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
-      />
-      {error && (
-        <p className="text-red-500 text-sm">{error}</p>
-      )}
-      <div className="flex items-center justify-between">
-        <label className="flex items-center text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer">
-          <input
-            type="file"
-            multiple
-            accept="image/*,video/*,audio/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <span className="flex items-center gap-1">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 002.828 2.828l6.586-6.586M12 3v6m0 0H6m6 0h6" />
-            </svg>
-            Добавить файлы
-          </span>
-        </label>
+    <div className="bg-white mt-4">
+      <div className="flex justify-between items-center mb-4 bg-indigo-50 rounded-t-lg p-2">
+        <h3 className="text-lg font-semibold text-gray-800">Новый ответ</h3>
         <button
-          type="submit"
-          disabled={!newReply.trim() && files.length === 0}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          type="button"
+          onClick={() => setIsVisible(false)}
+          className="text-gray-500 hover:text-gray-700"
+          title="Скрыть форму"
         >
-          Отправить
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
         </button>
       </div>
-      {files.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {files.map((file, index) => (
-            <div key={index} className="relative group">
-              {isImage(file) && (
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  className="w-full h-24 object-cover rounded-lg"
-                />
-              )}
-              {isVideo(file) && (
-                <video
-                  src={URL.createObjectURL(file)}
-                  controls
-                  className="w-full h-24 object-cover rounded-lg"
-                />
-              )}
-              {!(isImage(file) || isVideo(file)) && (
-                <div className="w-full h-24 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 text-xs p-2">
-                  {file.name}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeFile(index)}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <textarea
+          value={newReply}
+          onChange={(e) => setNewReply(e.target.value)}
+          placeholder="Введите свой ответ..."
+          rows={3} // Уменьшаем высоту textarea
+          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+        />
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
+        <div className="flex justify-between items-center">
+          <label className="text-indigo-600 hover:text-indigo-800 cursor-pointer">
+            <input
+              type="file"
+              multiple
+              accept="image/*,video/*,audio/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            + Прикрепить файлы
+          </label>
+          <button
+            type="submit"
+            disabled={!newReply.trim() && files.length === 0}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-base font-medium"
+          >
+            Отправить
+          </button>
         </div>
-      )}
-    </form>
+
+        {files.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {files.map((file, index) => (
+              <div key={index} className="relative group">
+                {isImage(file) && (
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="w-full h-24 object-cover rounded-lg"
+                  />
+                )}
+                {isVideo(file) && (
+                  <video
+                    src={URL.createObjectURL(file)}
+                    controls
+                    className="w-full h-24 object-cover rounded-lg"
+                  />
+                )}
+                {!(isImage(file) || isVideo(file)) && (
+                  <div className="w-full h-24 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 text-xs p-2">
+                    {file.name}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </form>
+    </div>
   );
 };
 

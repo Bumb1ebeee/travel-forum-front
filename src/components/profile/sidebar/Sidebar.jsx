@@ -60,6 +60,7 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
     if (!authenticated) {
       router.push('/auth/login');
     } else {
+      console.log('Пользователь аутентифицирован:', user);
       setUser(user);
       setLoading(false);
     }
@@ -71,79 +72,58 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
     return !sidebarCache.lastFetchTime || now - sidebarCache.lastFetchTime > sidebarCache.CACHE_DURATION;
   };
 
-  // Получение подписок на пользователей
-  const fetchUserSubscriptions = useCallback(async () => {
-    if (!user || user.role === 'moderator' || requestInProgress.current) return;
+  // Получение подписок (аналогично обсуждениям)
+  const fetchSubscriptions = useCallback(async () => {
+    if (!user || user.role === 'moderator' || requestInProgress.current || !shouldFetchData()) return;
     requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.warn('Токен отсутствует, подписки на пользователей не загружаются');
+        console.warn('Токен отсутствует, подписки не загружаются');
+        setUserSubscriptions([]);
+        setDiscussionSubscriptions([]);
+        setArchiveSubscriptions([]);
         return;
       }
-      console.log('Запрос подписок на пользователей...');
-      const response = await axios.get(`${config.apiUrl}/subscriptions/users`, {
-        headers: { Authorization: `Bearer ${token}` },
+      console.log('Запрос подписок...');
+      const endpoints = ['/subscriptions/users', '/subscriptions/discussions', '/discussions/archived'];
+      const responses = await Promise.all(
+        endpoints.map((endpoint) =>
+          axios
+            .get(`${config.apiUrl}${endpoint}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .catch((err) => ({
+              error: err,
+              endpoint,
+              data: { subscriptions: [], discussions: [] },
+            }))
+        )
+      );
+      const [userSubsRes, discussionSubsRes, archiveSubsRes] = responses;
+      if (userSubsRes.error) console.error('Ошибка загрузки подписок на пользователей:', userSubsRes.error.response?.data || userSubsRes.error.message);
+      if (discussionSubsRes.error) console.error('Ошибка загрузки подписок на обсуждения:', discussionSubsRes.error.response?.data || discussionSubsRes.error.message);
+      if (archiveSubsRes.error) console.error('Ошибка загрузки архивированных подписок:', archiveSubsRes.error.response?.data || archiveSubsRes.error.message);
+      const newUserSubscriptions = userSubsRes.data.subscriptions || [];
+      const newDiscussionSubscriptions = discussionSubsRes.data.subscriptions || [];
+      const newArchiveSubscriptions = archiveSubsRes.data.discussions || [];
+      console.log('Получены подписки:', {
+        userSubscriptions: newUserSubscriptions,
+        discussionSubscriptions: newDiscussionSubscriptions,
+        archiveSubscriptions: newArchiveSubscriptions,
       });
-      const subscriptions = response.data.subscriptions || [];
-      console.log('Получены подписки на пользователей:', subscriptions);
-      sidebarCache.userSubscriptions = subscriptions;
+      sidebarCache.userSubscriptions = newUserSubscriptions;
+      sidebarCache.discussionSubscriptions = newDiscussionSubscriptions;
+      sidebarCache.archiveSubscriptions = newArchiveSubscriptions;
       sidebarCache.lastFetchTime = Date.now();
-      setUserSubscriptions(subscriptions);
+      setUserSubscriptions(newUserSubscriptions);
+      setDiscussionSubscriptions(newDiscussionSubscriptions);
+      setArchiveSubscriptions(newArchiveSubscriptions);
     } catch (err) {
-      console.error('Ошибка загрузки подписок на пользователей:', err.response?.data || err.message);
-    } finally {
-      requestInProgress.current = false;
-    }
-  }, [user]);
-
-  // Получение подписок на обсуждения
-  const fetchDiscussionSubscriptions = useCallback(async () => {
-    if (!user || user.role === 'moderator' || requestInProgress.current) return;
-    requestInProgress.current = true;
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('Токен отсутствует, подписки на обсуждения не загружаются');
-        return;
-      }
-      console.log('Запрос подписок на обсуждения...');
-      const response = await axios.get(`${config.apiUrl}/subscriptions/discussions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const subscriptions = response.data.subscriptions || [];
-      console.log('Получены подписки на обсуждения:', subscriptions);
-      sidebarCache.discussionSubscriptions = subscriptions;
-      sidebarCache.lastFetchTime = Date.now();
-      setDiscussionSubscriptions(subscriptions);
-    } catch (err) {
-      console.error('Ошибка загрузки подписок на обсуждения:', err.response?.data || err.message);
-    } finally {
-      requestInProgress.current = false;
-    }
-  }, [user]);
-
-  // Получение архивированных подписок
-  const fetchArchiveSubscriptions = useCallback(async () => {
-    if (!user || user.role === 'moderator' || requestInProgress.current) return;
-    requestInProgress.current = true;
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('Токен отсутствует, архивированные подписки не загружаются');
-        return;
-      }
-      console.log('Запрос архивированных подписок...');
-      const response = await axios.get(`${config.apiUrl}/discussions/archived`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const discussions = response.data.discussions || [];
-      console.log('Получены архивированные подписки:', discussions);
-      sidebarCache.archiveSubscriptions = discussions;
-      sidebarCache.lastFetchTime = Date.now();
-      setArchiveSubscriptions(discussions);
-    } catch (err) {
-      console.error('Ошибка загрузки архивированных подписок:', err.response?.data || err.message);
+      console.error('Общая ошибка загрузки подписок:', err.response?.data || err.message);
+      setUserSubscriptions([]);
+      setDiscussionSubscriptions([]);
+      setArchiveSubscriptions([]);
     } finally {
       requestInProgress.current = false;
     }
@@ -151,12 +131,16 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
 
   // Получение обсуждений
   const fetchDiscussions = useCallback(async () => {
-    if (!user || requestInProgress.current) return;
+    if (!user || requestInProgress.current || !shouldFetchData()) return;
     requestInProgress.current = true;
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         console.warn('Токен отсутствует, обсуждения не загружаются');
+        setDrafts([]);
+        setPublished([]);
+        setPending([]);
+        setRejected([]);
         return;
       }
       console.log('Запрос обсуждений...');
@@ -195,6 +179,10 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
       setRejected(newRejected);
     } catch (err) {
       console.error('Общая ошибка загрузки обсуждений:', err.response?.data || err.message);
+      setDrafts([]);
+      setPublished([]);
+      setPending([]);
+      setRejected([]);
     } finally {
       requestInProgress.current = false;
     }
@@ -203,12 +191,13 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
   // Получение уведомлений с debounce
   const fetchNotifications = useCallback(
     debounce(async () => {
-      if (requestInProgress.current) return;
+      if (requestInProgress.current || !shouldFetchData()) return;
       requestInProgress.current = true;
       try {
         const token = localStorage.getItem('token');
         if (!token) {
           console.warn('Токен отсутствует, уведомления не загружаются');
+          setUnreadNotifications(0);
           return;
         }
         console.log('Запрос уведомлений...');
@@ -223,6 +212,7 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
         setUnreadNotifications(unreadCount);
       } catch (err) {
         console.error('Ошибка загрузки уведомлений:', err.response?.data || err.message);
+        setUnreadNotifications(0);
       } finally {
         requestInProgress.current = false;
       }
@@ -233,6 +223,7 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
   // Проверка аутентификации при монтировании
   useEffect(() => {
     if (!isMounted.current) {
+      resetSidebarCache(); // Сбрасываем кэш при монтировании
       checkAuth();
       isMounted.current = true;
     }
@@ -240,17 +231,24 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
 
   // Загрузка данных при наличии пользователя
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      resetSidebarCache();
+      return;
+    }
+    console.log('Роль пользователя:', user.role);
     const fetchData = async () => {
       setLoadingSubscriptions(true);
-      await Promise.all([
-        fetchNotifications(),
-        user.role === 'user' && fetchDiscussions(),
-        user.role === 'user' && fetchUserSubscriptions(),
-        user.role === 'user' && fetchDiscussionSubscriptions(),
-        user.role === 'user' && fetchArchiveSubscriptions(),
-      ].filter(Boolean));
-      setLoadingSubscriptions(false);
+      try {
+        await Promise.all([
+          fetchNotifications(),
+          user.role === 'user' && fetchDiscussions(),
+          user.role === 'user' && fetchSubscriptions(),
+        ].filter(Boolean));
+      } catch (err) {
+        console.error('Ошибка при загрузке данных:', err);
+      } finally {
+        setLoadingSubscriptions(false);
+      }
     };
     fetchData();
     let interval;
@@ -260,7 +258,7 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [user, fetchNotifications, fetchDiscussions, fetchUserSubscriptions, fetchDiscussionSubscriptions, fetchArchiveSubscriptions]);
+  }, [user, fetchNotifications, fetchDiscussions, fetchSubscriptions]);
 
   if (loading) {
     return <div className="w-64 bg-gray-100 p-4 pt-8 shadow-md">Загрузка...</div>;
@@ -268,7 +266,6 @@ const Sidebar = React.memo(({ toggleSidebar }) => {
 
   return (
     <aside className="fixed z-10 w-full h-full bg-gray-100 p-4 pt-12 sm:pt-8 shadow-md sm:w-64">
-      {/* Кнопка на главную страницу */}
       <SidebarButton
         isActive={isActive('/')}
         onClick={() => {
