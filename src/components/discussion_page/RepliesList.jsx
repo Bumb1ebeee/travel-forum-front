@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { HeartIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import parse from 'html-react-parser';
@@ -11,14 +12,13 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
   const [userReaction, setUserReaction] = useState(reply.userReaction || null);
   const [visibleChildrenCount, setVisibleChildrenCount] = useState(2);
   const [showChildren, setShowChildren] = useState(false);
-  const [mediaUrls, setMediaUrls] = useState({}); // Кэш для обновлённых ссылок
-  const [loadingMedia, setLoadingMedia] = useState({}); // Состояние загрузки
-  const [errorMedia, setErrorMedia] = useState({}); // Ошибки медиа
+  const [mediaUrls, setMediaUrls] = useState({});
+  const [loadingMedia, setLoadingMedia] = useState({});
+  const [errorMedia, setErrorMedia] = useState({});
 
   const visualLevel = Math.min(level, 5);
   const indent = visualLevel * 20;
 
-  // Нормализация ссылок Yandex.Disk
   const normalizeYandexUrl = (url) => {
     if (!url) return null;
     if (url.includes('downloader.disk.yandex.ru')) {
@@ -29,11 +29,35 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
       const separator = url.includes('?') ? '&' : '?';
       if (!url.includes('disposition=inline')) {
         console.log('Добавлен disposition=inline к URL:', url);
-        return `${url}&disposition=inline`;
+        return `${url}${separator}disposition=inline`;
       }
       return url;
     }
     return url;
+  };
+
+  const handleReport = async (reason) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Пожалуйста, войдите в систему, чтобы отправить жалобу');
+        return;
+      }
+
+      const response = await axios.post(
+        `${config.apiUrl}/reports`,
+        {
+          reason,
+          reportable_id: reply.id,
+          reportable_type: 'App\\Models\\Reply',
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert(response.data.message || 'Жалоба успешно отправлена');
+    } catch (error) {
+      console.error('Ошибка при отправке жалобы:', error.response?.data || error.message);
+      alert('Не удалось отправить жалобу: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   useEffect(() => {
@@ -57,7 +81,6 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
     fetchReaction();
   }, [reply.id, likes]);
 
-  // Логируем структуру reply.media
   useEffect(() => {
     if (reply.media?.length > 0) {
       console.log('Структура reply.media:', JSON.stringify(reply.media, null, 2));
@@ -216,7 +239,12 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
                 <HeartIcon className={`h-5 w-5 ${userReaction === 'like' ? 'fill-red-500' : ''}`} />
                 <span>{likes}</span>
               </button>
-              <OptionsMenu />
+              <OptionsMenu
+                onReport={handleReport}
+                isJoined={isJoined}
+                isArchived={false}
+                isAuthor={false} // Уточните логику определения автора ответа
+              />
             </div>
           </div>
 

@@ -56,7 +56,6 @@ export default function StaffPage() {
 
       <SidebarLayout>
         <main className="p-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6">Управление персоналом</h1>
           <StaffManagement />
         </main>
       </SidebarLayout>

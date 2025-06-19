@@ -134,7 +134,7 @@ export default function TwoFactorAuthForm({ user, submitting }) {
               <p className="text-gray-600 mb-2">
                 Отсканируйте QR-код с помощью приложения-аутентификатора (например, Google Authenticator):
               </p>
-              <Image
+              <img
                 src={`data:image/png;base64,${qrCode}`}
                 alt="QR Code"
                 className="mx-auto mb-4 w-48 h-48"

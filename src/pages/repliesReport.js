@@ -47,7 +47,7 @@ export default function MyResponseReportsPage({ user }) {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
+      await axios.post(
         `${config.apiUrl}/reports/${reportId}/moderate`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
