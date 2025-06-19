@@ -314,6 +314,7 @@ const DiscussionHeader = ({ discussion, isJoined, handleJoin }) => {
           isJoined={isJoinedState}
           isArchived={isArchived}
           isAuthor={isAuthor}
+          isReply={false}
         />
       </div>
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2 sm:mb-4">{discussion.title}</h1>

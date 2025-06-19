@@ -244,6 +244,7 @@ const ReplyItem = ({ reply, level = 0, isJoined, setReplyTo }) => {
                 isJoined={isJoined}
                 isArchived={false}
                 isAuthor={false} // Уточните логику определения автора ответа
+                isReply={true}
               />
             </div>
           </div>
